@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -137,18 +139,22 @@ class _LoginScreenState extends State<LoginScreen> {
         await auth.signInWithPassword(email: email.text.trim(), password: password.text);
       }
     } on PostgrestException catch (e) {
-      if (mounted) setState(() => error = e.code == '23505'
-          ? 'This mobile number is already registered with another account. Please use a different number.'
-          : 'Could not complete this step. Check your details and try again.');
+      if (mounted) {
+        setState(() => error = e.code == '23505'
+            ? 'This mobile number is already registered with another account. Please use a different number.'
+            : 'Could not complete this step. Check your details and try again.');
+      }
     } on AuthException catch (e) {
       final authMessage = e.message.toLowerCase();
       final duplicateMobile = authMessage.contains('profiles_mobile_number_unique') ||
           authMessage.contains('duplicate key') ||
           authMessage.contains('already exists') ||
           authMessage.contains('database error saving new user');
-      if (mounted) setState(() => error = duplicateMobile
-          ? 'This mobile number may already be registered with another account. Please use a different number or contact support if the problem continues.'
-          : e.message);
+      if (mounted) {
+        setState(() => error = duplicateMobile
+            ? 'This mobile number may already be registered with another account. Please use a different number or contact support if the problem continues.'
+            : e.message);
+      }
     } catch (_) {
       if (mounted) setState(() => error = 'Could not complete this step. Check your details and try again.');
     }
@@ -375,10 +381,12 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final row = await Supabase.instance.client.from('profiles')
           .select('mobile_number').eq('id', user.id).maybeSingle();
-      if (mounted) setState(() {
-        mobileNumber = row?['mobile_number'] as String?;
-        checkingMobile = false;
-      });
+      if (mounted) {
+        setState(() {
+          mobileNumber = row?['mobile_number'] as String?;
+          checkingMobile = false;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => checkingMobile = false);
     }
@@ -414,18 +422,22 @@ class _HomeScreenState extends State<HomeScreen> {
         'display_name': user.userMetadata?['full_name'] ?? user.userMetadata?['name'],
       }).eq('id', user.id);
       if (mounted) setState(() => mobileNumber = normalized);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mobile number saved. No OTP was sent.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Mobile number saved. No OTP was sent.')),
+        );
+      }
     } on PostgrestException catch (e) {
       final message = e.code == '23505'
           ? 'This mobile number is already registered with another account. Please use a different number.'
           : 'Could not save this mobile number. Please try again.';
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not save this mobile number. Please try again.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not save this mobile number. Please try again.')),
+        );
+      }
     }
   }
 

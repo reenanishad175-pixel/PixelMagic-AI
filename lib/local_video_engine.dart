@@ -141,4 +141,39 @@ class LocalVideoEngine {
     return _run(command, output, 'Video volume');
   }
 
+
+  static Future<String> reverse({
+    required String input,
+  }) async {
+    final output = await _outputPath('PixelMagic_Reverse');
+    final command = '-y -i ' + _quote(input) +
+        ' -vf "reverse" -af "areverse" -c:v mpeg4 -q:v 3 -c:a aac -b:a 160k -movflags +faststart ' +
+        _quote(output);
+    return _run(command, output, 'Reverse video');
+  }
+
+  static Future<String> fade({
+    required String input,
+    double seconds = 1.0,
+  }) async {
+    if (seconds <= 0 || seconds > 5) throw ArgumentError('Fade duration must be 0-5 seconds.');
+    final output = await _outputPath('PixelMagic_Fade');
+    final command = '-y -i ' + _quote(input) +
+        ' -vf "fade=t=in:st=0:d=$seconds,fade=t=out:st=99999:d=$seconds" ' +
+        '-c:v mpeg4 -q:v 3 -c:a aac -b:a 160k -movflags +faststart ' + _quote(output);
+    return _run(command, output, 'Video fade');
+  }
+
+  static Future<String> chromaKeyBackground({
+    required String input,
+    required String background,
+  }) async {
+    final output = await _outputPath('PixelMagic_GreenScreen');
+    final command = '-y -i ' + _quote(input) + ' -stream_loop -1 -i ' + _quote(background) +
+        ' -filter_complex "[1:v]scale=iw:ih[bg];[0:v]chromakey=0x00FF00:0.18:0.08[fg];[bg][fg]overlay=shortest=1[v]" ' +
+        '-map "[v]" -map "0:a?" -c:v mpeg4 -q:v 3 -c:a aac -b:a 160k -shortest -movflags +faststart ' +
+        _quote(output);
+    return _run(command, output, 'Green screen replacement');
+  }
+
 }

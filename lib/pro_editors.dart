@@ -12,6 +12,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'local_downloads.dart';
 import 'local_video_engine.dart';
+import 'local_background_remover.dart';
 
 const _gold = Color(0xFFFFD479);
 const _panel = Color(0xFF111F2B);
@@ -123,7 +124,13 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
       ],
       const SizedBox(height:18),
       _planned(Icons.auto_fix_high,'AI Retouch & Object Eraser','Requires a dedicated AI model/API; not active yet.'),
-      _planned(Icons.layers,'AI Background Studio & Selective Masks','AI subject masks and background replacement are not active yet.'),
+      Card(color:_panel,child:ListTile(
+        leading:const Icon(Icons.layers,color:_gold),
+        title:const Text('Remove Person Background'),
+        subtitle:const Text('On-device person segmentation · no API charge',style:TextStyle(color:Colors.white54,fontSize:11)),
+        trailing:const Icon(Icons.arrow_forward_ios,size:16),
+        onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const BackgroundRemoverScreen())),
+      )),
       _planned(Icons.tune,'HSL Mixer, RGB Curves & Healing Brush','Advanced precision tools are planned for the next phase.'),
     ]),
     floatingActionButton:photo==null?FloatingActionButton.extended(onPressed:choose,icon:const Icon(Icons.photo_library),label:const Text('Choose photo')):null,
@@ -267,8 +274,6 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
       if(error!=null)Text(error!,style:const TextStyle(color:Colors.redAccent)),
       const SizedBox(height:14),
       _planned(Icons.person_search,'AI Video Background Removal','AI segmentation for normal backgrounds still needs a dedicated video model/API.'),
-      _planned(Icons.person_search,'AI Video Background Removal','Requires a video segmentation model or configured AI video API.'),
-      _planned(Icons.timeline,'Multi-track timeline, keyframes & motion tracking','Requires a dedicated non-linear editing project engine.'),
       _planned(Icons.timeline,'Multi-track timeline, keyframes & motion tracking','Needs a dedicated non-linear editing project engine; not active yet.'),
       _planned(Icons.high_quality,'2K / 4K export, speed ramp & advanced transitions','Not active yet; device performance and codec support must be tested.'),
     ]),floatingActionButton:c==null?FloatingActionButton.extended(onPressed:choose,icon:const Icon(Icons.video_library),label:const Text('Choose video')):null);

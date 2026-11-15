@@ -3,12 +3,13 @@
 Flutter Android starter for PixelMagic AI.
 
 ## Current status
-- Flutter app shell and dark UI
-- Email/password sign-in and sign-up through Supabase once the publishable key is configured
-- Feature tiles are placeholders; AI generation, editing, video tools, subscriptions and billing are not implemented yet
-- Supabase database is provisioned separately; never put a service-role key in this repository
+- Dark-themed Flutter app shell
+- Email/password sign-up and sign-in connected to the PixelMagic AI Supabase project
+- Home screen with planned creative-tool entry points
+- AI generation, photo editing, video tools, Google sign-in, subscriptions and billing are not implemented yet
+- Supabase database is provisioned separately with row-level security; no service-role key is included here
 
 ## Build APK
-Open **Actions** → **Build Android APK** → **Run workflow**. The workflow builds a debug APK and uploads it as an artifact.
+Open **Actions** → **Build Android APK** → **Run workflow**. The workflow generates the Android platform files, runs Dart analysis, builds a debug APK, and uploads it as an artifact.
 
-The Supabase publishable key is intentionally not committed. Later, add it as a GitHub Actions repository secret named `SUPABASE_PUBLISHABLE_KEY` and pass it to Flutter using `--dart-define`. Do not add a Supabase secret/service-role key.
+The workflow uses the Supabase **publishable** client key. This key is designed for client applications and is not a service-role secret. Never add a Supabase secret/service-role key to this repository or an Android app.

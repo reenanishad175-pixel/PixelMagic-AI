@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'local_downloads.dart';
 import 'local_video_engine.dart';
 import 'local_background_remover.dart';
+import 'pixelmagic_ai_studio.dart';
 
 const _gold = Color(0xFFFFD479);
 const _panel = Color(0xFF111F2B);
@@ -83,6 +84,7 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Professional Photo Editor  •  PRO')),
     body: ListView(padding:const EdgeInsets.all(16),children:[
+      FilledButton.icon(onPressed:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const PixelMagicAiStudio())),icon:const Icon(Icons.auto_awesome),label:const Text('Open AI Image & Video Generator')),
       if(photo==null) InkWell(onTap:choose,child:Container(height:230,decoration:BoxDecoration(color:_panel,borderRadius:BorderRadius.circular(18),border:Border.all(color:_gold)),child:const Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(Icons.add_photo_alternate,size:54,color:_gold),SizedBox(height:10),Text('Choose a photo to edit')])))
       else ...[
         RepaintBoundary(key:previewKey,child:AspectRatio(aspectRatio:4/5,child:ClipRRect(borderRadius:BorderRadius.circular(16),child:ColoredBox(color:_panel,child:Stack(fit:StackFit.expand,children:[original?Image.file(File(photo!.path),fit:BoxFit.contain):Transform.rotate(angle:rotation,child:Transform(alignment:Alignment.center,transform:Matrix4.identity()..scale((flip?-1.0:1.0)*zoom,zoom),child:ColorFiltered(colorFilter:ColorFilter.matrix(matrix),child:ImageFiltered(imageFilter:ui.ImageFilter.blur(sigmaX:blur,sigmaY:blur),child:Image.file(File(photo!.path),fit:BoxFit.contain))))),if(overlayText.isNotEmpty) Center(child:Container(padding:const EdgeInsets.symmetric(horizontal:12,vertical:6),color:Colors.black45,child:Text(overlayText,style:const TextStyle(color:Colors.white,fontSize:22,fontWeight:FontWeight.bold)))),if(frameWidth>0) DecoratedBox(decoration:BoxDecoration(border:Border.all(color:Colors.white,width:frameWidth*4))) ]))))),
@@ -225,6 +227,7 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
   Widget build(BuildContext context){
     final c=controller; final duration=c?.value.duration??Duration.zero; final max=duration.inMilliseconds/1000;
     return Scaffold(appBar:AppBar(title:const Text('Professional Video Editor  •  PRO')),body:ListView(padding:const EdgeInsets.all(16),children:[
+      FilledButton.icon(onPressed:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const PixelMagicAiStudio())),icon:const Icon(Icons.auto_awesome),label:const Text('Open AI Image & Video Generator')),
       if(c==null) ...[
         InkWell(onTap:busy?null:choose,child:Container(height:220,decoration:BoxDecoration(color:_panel,borderRadius:BorderRadius.circular(18),border:Border.all(color:_gold)),child:const Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(Icons.video_library,size:54,color:_gold),SizedBox(height:10),Text('Choose a video for PRO editing')]))),
         if(hasSavedProject) OutlinedButton.icon(onPressed:busy?null:_resumeProject,icon:const Icon(Icons.restore),label:const Text('Resume saved project')),

@@ -311,7 +311,7 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
           const SizedBox(height: 14),
           const Text('Video filters', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Wrap(spacing: 8, runSpacing: 8, children: ['Original','Cinematic','Vintage','Retro','B&W','HDR','Vivid','Warm','Cool','Film','Moody'].map((name) =>
+          Wrap(spacing: 8, runSpacing: 8, children: ['Original','Cinematic','Vintage','Retro','B&W','HDR','Vivid','Warm','Cool','Portrait','Film','Moody','Slow Motion'].map((name) =>
             ChoiceChip(label: Text(name), selected: _filter == name, onSelected: _editing ? null : (_) => _applyVideoFilter(name))).toList()),
           const SizedBox(height: 14),
           const Text('More editing tools', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),

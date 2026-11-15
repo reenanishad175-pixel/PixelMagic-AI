@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use, prefer_interpolation_to_compose_strings
 
 import 'dart:io';
+import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -8,6 +9,7 @@ import 'package:gal/gal.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'local_downloads.dart';
 import 'local_video_engine.dart';
 
@@ -141,6 +143,45 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
   double start=0,end=0,speed=1,volume=1,gradeBrightness=0,gradeContrast=1,gradeSaturation=1,cropFraction=.85;
   int exportHeight=1080;
   String filter='Original';
+  bool hasSavedProject=false;
+  @override
+  void initState(){super.initState();_checkSavedProject();}
+  Future<void> _checkSavedProject() async {
+    final prefs=await SharedPreferences.getInstance();
+    if(mounted)setState(()=>hasSavedProject=prefs.containsKey('pixelmagic_pro_video_project'));
+  }
+  Future<void> _saveProject() async {
+    final c=controller;if(c==null)return;
+    final prefs=await SharedPreferences.getInstance();
+    await prefs.setString('pixelmagic_pro_video_project',jsonEncode({
+      'path':c.dataSource,'start':start,'end':end,'speed':speed,'volume':volume,
+      'brightness':gradeBrightness,'contrast':gradeContrast,'saturation':gradeSaturation,
+      'crop':cropFraction,'filter':filter,'exportHeight':exportHeight,
+    }));
+    if(mounted){setState(()=>hasSavedProject=true);ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('PRO editing project saved on this device.')));}
+  }
+  Future<void> _resumeProject() async {
+    final prefs=await SharedPreferences.getInstance();
+    final raw=prefs.getString('pixelmagic_pro_video_project');if(raw==null)return;
+    try{
+      final data=jsonDecode(raw) as Map<String,dynamic>;final path=data['path'] as String;
+      if(!await File(path).exists()){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Saved source video is no longer available.')));return;}
+      await load(path);
+      if(!mounted)return;
+      setState((){
+        start=(data['start'] as num?)?.toDouble()??0;
+        end=(data['end'] as num?)?.toDouble()??end;
+        speed=(data['speed'] as num?)?.toDouble()??1;
+        volume=(data['volume'] as num?)?.toDouble()??1;
+        gradeBrightness=(data['brightness'] as num?)?.toDouble()??0;
+        gradeContrast=(data['contrast'] as num?)?.toDouble()??1;
+        gradeSaturation=(data['saturation'] as num?)?.toDouble()??1;
+        cropFraction=(data['crop'] as num?)?.toDouble()??.85;
+        filter=(data['filter'] as String?)??'Original';
+        exportHeight=(data['exportHeight'] as int?)??1080;
+      });
+    }catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not restore saved project.')));}
+  }
   Future<void> choose() async { final p=await picker.pickVideo(source:ImageSource.gallery); if(p!=null) await load(p.path); }
   Future<void> load(String path) async {
     setState(()=>busy=true); await controller?.dispose();
@@ -177,11 +218,15 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
   Widget build(BuildContext context){
     final c=controller; final duration=c?.value.duration??Duration.zero; final max=duration.inMilliseconds/1000;
     return Scaffold(appBar:AppBar(title:const Text('Professional Video Editor  •  PRO')),body:ListView(padding:const EdgeInsets.all(16),children:[
-      if(c==null) InkWell(onTap:busy?null:choose,child:Container(height:220,decoration:BoxDecoration(color:_panel,borderRadius:BorderRadius.circular(18),border:Border.all(color:_gold)),child:const Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(Icons.video_library,size:54,color:_gold),SizedBox(height:10),Text('Choose a video for PRO editing')])))
-      else ...[
+      if(c==null) ...[
+        InkWell(onTap:busy?null:choose,child:Container(height:220,decoration:BoxDecoration(color:_panel,borderRadius:BorderRadius.circular(18),border:Border.all(color:_gold)),child:const Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(Icons.video_library,size:54,color:_gold),SizedBox(height:10),Text('Choose a video for PRO editing')])),
+        if(hasSavedProject) OutlinedButton.icon(onPressed:busy?null:_resumeProject,icon:const Icon(Icons.restore),label:const Text('Resume saved project')),
+      ] else ...[
         ClipRRect(borderRadius:BorderRadius.circular(14),child:AspectRatio(aspectRatio:c.value.aspectRatio,child:VideoPlayer(c))),
         Row(children:[IconButton.filled(onPressed:busy?null:()=>setState(()=>c.value.isPlaying?c.pause():c.play()),icon:Icon(c.value.isPlaying?Icons.pause:Icons.play_arrow)),Expanded(child:VideoProgressIndicator(c,allowScrubbing:!busy,padding:const EdgeInsets.all(12))),Text(time(c.value.position)+' / '+time(duration),style:const TextStyle(fontSize:10))]),
         OutlinedButton.icon(onPressed:busy?null:choose,icon:const Icon(Icons.video_file),label:const Text('Choose another video')),
+        OutlinedButton.icon(onPressed:busy?null:_saveProject,icon:const Icon(Icons.save),label:const Text('Save editing project')),
+        if(hasSavedProject) TextButton.icon(onPressed:busy?null:_resumeProject,icon:const Icon(Icons.restore),label:const Text('Resume last saved project')),
         const Text('01 · Timeline & Clip Editing',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
         if(max>1)RangeSlider(min:0,max:max,values:RangeValues(start.clamp(0,max),end.clamp(0,max)),onChanged:busy?null:(v)=>setState(() { start=v.start; end=v.end; })),
         FilledButton.tonalIcon(onPressed:busy||end<=start?null:()=>run((v)=>LocalVideoEngine.trim(input:v,start:Duration(milliseconds:(start*1000).round()),end:Duration(milliseconds:(end*1000).round())),'Trimmed video exported.'),icon:const Icon(Icons.content_cut),label:const Text('Trim and export')),

@@ -49,6 +49,8 @@ jobs:
           PY
       - name: Install dependencies
         run: flutter pub get
+      - name: Run Flutter tests
+        run: flutter test
       - name: Analyze Dart source
         run: flutter analyze
       - name: Build debug APK

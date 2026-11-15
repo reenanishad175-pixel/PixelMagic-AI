@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'local_editors.dart';
+import 'local_downloads.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const supabaseUrl = 'https://lmpvwgzpyprsqxcxecss.supabase.co';
@@ -588,19 +589,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _downloadsContent() => ListView(
-    padding: const EdgeInsets.all(20),
-    children: const [
-      SizedBox(height: 18),
-      Icon(Icons.download_for_offline_outlined, size: 64, color: Color(0xFF55DCCB)),
-      SizedBox(height: 16),
-      Center(child: Text('Your downloads', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold))),
-      SizedBox(height: 8),
-      Center(child: Text('Videos and edited files you export will appear here.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white60))),
-      SizedBox(height: 18),
-      Center(child: Text('No downloads yet', style: TextStyle(color: Colors.white38))),
-    ],
-  );
+  Widget _downloadsContent() => const LocalDownloadsScreen();
 
   Widget _settingsContent() => ListView(
     padding: const EdgeInsets.all(20),

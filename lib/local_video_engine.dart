@@ -71,6 +71,9 @@ class LocalVideoEngine {
     required String filter,
   }) async {
     final output = await _outputPath('PixelMagic_Filter');
+    if (filter == 'Slow Motion') {
+      return _run('-y -i ${_quote(input)} -vf "setpts=1.5*PTS" -af "atempo=0.6666667" -c:v mpeg4 -q:v 3 -c:a aac -b:a 128k -movflags +faststart ${_quote(output)}', output, 'Slow motion');
+    }
     final presets = <String, String>{
       'Cinematic': 'eq=contrast=1.16:saturation=0.82:brightness=-0.02,colorbalance=rs=0.04:bs=-0.04',
       'Vintage': 'curves=vintage,eq=saturation=0.72:contrast=0.92',
@@ -82,6 +85,7 @@ class LocalVideoEngine {
       'Cool': 'colorbalance=rs=-0.1:gs=0.02:bs=0.12',
       'Film': 'eq=contrast=1.12:saturation=0.75:gamma=1.05,noise=alls=3:allf=t',
       'Moody': 'eq=brightness=-0.06:contrast=1.22:saturation=0.78',
+      'Portrait': 'eq=brightness=0.02:contrast=1.04:saturation=1.06,unsharp=3:3:0.35',
     };
     final videoFilter = presets[filter];
     if (videoFilter == null) throw ArgumentError('Unknown filter.');

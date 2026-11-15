@@ -129,8 +129,17 @@ class _LoginScreenState extends State<LoginScreen> {
         }
         await auth.signInWithPassword(email: email.text.trim(), password: password.text);
       }
+    } on PostgrestException catch (e) {
+      if (mounted) setState(() => error = e.code == '23505'
+          ? 'This mobile number is already registered with another account. Please use a different number.'
+          : 'Could not complete this step. Check your details and try again.');
     } on AuthException catch (e) {
-      if (mounted) setState(() => error = e.message);
+      final duplicateMobile = e.message.contains('profiles_mobile_number_unique') ||
+          e.message.toLowerCase().contains('duplicate key') ||
+          e.message.toLowerCase().contains('already exists');
+      if (mounted) setState(() => error = duplicateMobile
+          ? 'This mobile number is already registered with another account. Please use a different number.'
+          : e.message);
     } catch (_) {
       if (mounted) setState(() => error = 'Could not complete this step. Check your details and try again.');
     }
@@ -291,9 +300,14 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Mobile number saved. No OTP was sent.')),
       );
+    } on PostgrestException catch (e) {
+      final message = e.code == '23505'
+          ? 'This mobile number is already registered with another account. Please use a different number.'
+          : 'Could not save this mobile number. Please try again.';
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } catch (_) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not save this number. It may already be linked to another account.')),
+        const SnackBar(content: Text('Could not save this mobile number. Please try again.')),
       );
     }
   }

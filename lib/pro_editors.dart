@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
 import 'package:flutter/rendering.dart';
 import 'package:gal/gal.dart';
 import 'package:image_picker/image_picker.dart';
@@ -111,17 +112,74 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
     if (photo==null || saving) return;
     setState(()=>saving=true);
     try {
-      final boundary=previewKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary==null) throw Exception('Preview is not ready');
-      final image=await boundary.toImage(pixelRatio: 3);
-      final data=await image.toByteData(format: ui.ImageByteFormat.png);
-      image.dispose();
-      if (data==null) throw Exception('Could not render image');
-      final path=await LocalDownloads.saveImageBytes(data.buffer.asUint8List());
+      final decoded = img.decodeImage(await photo!.readAsBytes());
+      if (decoded == null) throw Exception('Unsupported or damaged image file.');
+      var output = img.bakeOrientation(decoded);
+      if (rotation.abs() > .001) output = img.copyRotate(output, angle: (rotation * 180 / 3.141592653589793).round());
+      if (flip) output = img.flipHorizontal(output);
+
+      final currentRatio = output.width / output.height;
+      if ((currentRatio - cropAspect).abs() > .001) {
+        if (currentRatio > cropAspect) {
+          final width = (output.height * cropAspect).round().clamp(1, output.width);
+          output = img.copyCrop(output, x: (output.width - width) ~/ 2, y: 0, width: width, height: output.height);
+        } else {
+          final height = (output.width / cropAspect).round().clamp(1, output.height);
+          output = img.copyCrop(output, x: 0, y: (output.height - height) ~/ 2, width: output.width, height: height);
+        }
+      }
+
+      final w = output.width, h = output.height;
+      final cx = (w - 1) / 2, cy = (h - 1) / 2;
+      
+      for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+          final p = output.getPixel(x, y);
+          var r = p.r.toDouble() / 255, g = p.g.toDouble() / 255, b = p.b.toDouble() / 255;
+          final luma = .213 * r + .715 * g + .072 * b;
+          r = luma + (r - luma) * saturation;
+          g = luma + (g - luma) * saturation;
+          b = luma + (b - luma) * saturation;
+          r = (r - .5) * contrast + .5 + brightness + warmth * .12 + redMix - 1;
+          g = (g - .5) * contrast + .5 + brightness + tint * .09 + greenMix - 1;
+          b = (b - .5) * contrast + .5 + brightness - warmth * .12 + blueMix - 1;
+          if (vignette > 0) {
+            final dx = (x - cx) / (cx == 0 ? 1 : cx);
+            final dy = (y - cy) / (cy == 0 ? 1 : cy);
+            final factor = (1 - (dx * dx + dy * dy) * .5 * vignette).clamp(.25, 1.0);
+            r *= factor; g *= factor; b *= factor;
+          }
+          output.setPixelRgba(x, y,
+            (r.clamp(0, 1) * 255).round(),
+            (g.clamp(0, 1) * 255).round(),
+            (b.clamp(0, 1) * 255).round(),
+            p.a.toInt());
+        }
+      }
+      if (blur > .5) output = img.gaussianBlur(output, radius: blur.round().clamp(1, 20));
+      if (frameWidth > 0) {
+        final border = (frameWidth * (w / 180)).round().clamp(1, 80);
+        for (var y = 0; y < h; y++) {
+          for (var x = 0; x < w; x++) {
+            if (x < border || y < border || x >= w - border || y >= h - border) {
+              output.setPixelRgba(x, y, 255, 255, 255, 255);
+            }
+          }
+        }
+      }
+      if (overlayText.isNotEmpty) {
+        img.drawString(output, overlayText, font: img.arial48,
+          x: 20, y: (h - 80).clamp(0, h - 1),
+          color: img.ColorRgb8(255, 255, 255));
+      }
+      final path = await LocalDownloads.saveImageBytes(img.encodePng(output));
       await Gal.requestAccess(); await Gal.putImage(path);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PRO photo exported to Gallery and Downloads.')));
-    } catch(e) { if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: '+e.toString()))); }
-    finally { if(mounted) setState(()=>saving=false); }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Full-resolution photo exported to Gallery and Downloads.')));
+    } catch(e) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: '+e.toString())));
+    } finally {
+      if(mounted) setState(()=>saving=false);
+    }
   }
   Widget control(String name,double value,double min,double max,ValueChanged<double> update) => Column(crossAxisAlignment: CrossAxisAlignment.start,children:[
     Row(children:[Expanded(child:Text(name)),Text(value.toStringAsFixed(2),style:const TextStyle(color:_gold))]),

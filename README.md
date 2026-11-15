@@ -12,6 +12,7 @@ Flutter Android app for the PixelMagic AI project.
 - User profile and credit-balance display with row-level security.
 
 ## Still requires owner-side setup
+- Add `io.supabase.pixelmagic://login-callback/` to Supabase Authentication → URL Configuration → Redirect URLs.
 - Google OAuth client ID and client secret must be added to Google Cloud and the Supabase Google provider settings. The app cannot complete Google OAuth until these credentials are configured.
 - AI image/video generation and photo-editing providers are not connected. The creative-tool screens currently let the user choose a photo and prepare a prompt, but do not generate/export media.
 - Phone numbers are not OTP-verified. The app enforces uniqueness, but because no phone OTP is used, it cannot prove that the number belongs to the person who entered it.

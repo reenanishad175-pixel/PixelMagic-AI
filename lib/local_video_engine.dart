@@ -212,4 +212,64 @@ class LocalVideoEngine {
         _quote(output), output, 'Resolution export');
   }
 
+
+  static Future<String> rotate({required String input, int quarterTurns = 1}) async {
+    if (quarterTurns < 1 || quarterTurns > 3) throw ArgumentError('Rotation must be 90, 180 or 270 degrees.');
+    final output = await _outputPath('PixelMagic_Rotate');
+    final filters = {1: 'transpose=1', 2: 'hflip,vflip', 3: 'transpose=2'};
+    return _run('-y -i ' + _quote(input) + ' -vf "${filters[quarterTurns]}" -c:v mpeg4 -q:v 3 -c:a copy -movflags +faststart ' + _quote(output), output, 'Rotate video');
+  }
+
+  static Future<String> flip({required String input, bool horizontal = true}) async {
+    final output = await _outputPath('PixelMagic_Flip');
+    final filter = horizontal ? 'hflip' : 'vflip';
+    return _run('-y -i ' + _quote(input) + ' -vf "$filter" -c:v mpeg4 -q:v 3 -c:a copy -movflags +faststart ' + _quote(output), output, 'Flip video');
+  }
+
+  static Future<String> mute({required String input}) async {
+    final output = await _outputPath('PixelMagic_Mute');
+    return _run('-y -i ' + _quote(input) + ' -c:v copy -an -movflags +faststart ' + _quote(output), output, 'Mute video');
+  }
+
+  static Future<String> fadeAudio({required String input, required double durationSeconds, double fadeSeconds = 2}) async {
+    if (durationSeconds <= 0 || fadeSeconds <= 0 || fadeSeconds * 2 > durationSeconds) throw ArgumentError('Invalid audio fade duration.');
+    final output = await _outputPath('PixelMagic_AudioFade');
+    final outStart = durationSeconds - fadeSeconds;
+    return _run('-y -i ' + _quote(input) + ' -af "afade=t=in:st=0:d=$fadeSeconds,afade=t=out:st=$outStart:d=$fadeSeconds" -c:v copy -c:a aac -b:a 192k -movflags +faststart ' + _quote(output), output, 'Audio fade');
+  }
+
+  static Future<String> sharpen({required String input, double amount = 1}) async {
+    if (amount < 0.1 || amount > 3) throw ArgumentError('Sharpen amount out of range.');
+    final output = await _outputPath('PixelMagic_Sharpen');
+    return _run('-y -i ' + _quote(input) + ' -vf "unsharp=5:5:$amount:5:5:0" -c:v mpeg4 -q:v 3 -c:a copy -movflags +faststart ' + _quote(output), output, 'Sharpen video');
+  }
+
+  static Future<String> vignette({required String input, double angle = 0.7}) async {
+    if (angle < 0.1 || angle > 1.5) throw ArgumentError('Vignette strength out of range.');
+    final output = await _outputPath('PixelMagic_Vignette');
+    return _run('-y -i ' + _quote(input) + ' -vf "vignette=angle=$angle" -c:v mpeg4 -q:v 3 -c:a copy -movflags +faststart ' + _quote(output), output, 'Vignette effect');
+  }
+
+  static Future<String> denoise({required String input}) async {
+    final output = await _outputPath('PixelMagic_Denoise');
+    return _run('-y -i ' + _quote(input) + ' -vf "hqdn3d=1.5:1.5:6:6" -c:v mpeg4 -q:v 3 -c:a copy -movflags +faststart ' + _quote(output), output, 'Video denoise');
+  }
+
+  static Future<String> sepia({required String input}) async {
+    final output = await _outputPath('PixelMagic_Sepia');
+    return _run('-y -i ' + _quote(input) + ' -vf "colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131" -c:v mpeg4 -q:v 3 -c:a copy -movflags +faststart ' + _quote(output), output, 'Sepia effect');
+  }
+
+  static Future<String> extractAudio({required String input}) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final folder = Directory('${dir.path}/PixelMagicDownloads');
+    if (!await folder.exists()) await folder.create(recursive: true);
+    final output = '${folder.path}/PixelMagic_Audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    final session = await FFmpegKit.execute('-y -i ' + _quote(input) + ' -vn -c:a aac -b:a 192k ' + _quote(output));
+    final code = await session.getReturnCode();
+    if (!ReturnCode.isSuccess(code) || !await File(output).exists()) throw Exception('Audio extraction failed.');
+    await LocalDownloads.registerFile(output, mediaType: 'audio');
+    return output;
+  }
+
 }

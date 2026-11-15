@@ -26,6 +26,27 @@ jobs:
           cache: true
       - name: Generate Android platform files
         run: flutter create --platforms=android --project-name pixelmagic_ai .
+      - name: Register Android auth deep link
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
+          marker = '            <intent-filter>\n                <action android:name="android.intent.action.MAIN"'
+          block = '''            <intent-filter>
+                          <action android:name="android.intent.action.VIEW" />
+                          <category android:name="android.intent.category.DEFAULT" />
+                          <category android:name="android.intent.category.BROWSABLE" />
+                          <data android:scheme="io.supabase.pixelmagic" android:host="login-callback" />
+                      </intent-filter>
+          '''
+          if "io.supabase.pixelmagic" not in s:
+              pos = s.find("</activity>")
+              if pos < 0:
+                  raise SystemExit("Main activity not found in AndroidManifest.xml")
+              s = s[:pos] + block + s[pos:]
+              p.write_text(s)
+          PY
       - name: Install dependencies
         run: flutter pub get
       - name: Analyze Dart source

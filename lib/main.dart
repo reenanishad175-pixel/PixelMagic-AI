@@ -1060,39 +1060,59 @@ class SubscriptionPanel extends StatelessWidget {
             }
             final row = snapshot.data;
             if (row == null) {
-              return const Text('Current plan: Free. Choose a plan below when payment is enabled.',
+              return const Text('Current plan: Free. Subscribe to unlock Pro photo and video editor features.',
                   style: TextStyle(color: Colors.white70, fontSize: 12));
             }
-            final plan = (row['plan_code'] ?? 'free').toString().toUpperCase();
+            final code = (row['plan_code'] ?? 'free').toString().toLowerCase();
+            final plan = code == 'monthly' ? 'Monthly Pro'
+                : code == 'lifetime' ? 'Lifetime Pro'
+                : code == 'free' ? 'Free' : code.toUpperCase();
             final status = (row['status'] ?? 'pending').toString().toUpperCase();
             final end = row['current_period_end']?.toString();
             return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Plan: $plan   •   Status: $status', style: const TextStyle(color: Color(0xFF55DCCB))),
-              if (end != null) Text('Valid until: ${end.split('T').first}',
+              Text('Plan: $plan   •   Status: $status',
+                  style: const TextStyle(color: Color(0xFF55DCCB))),
+              if (end != null && code != 'lifetime') Text('Valid until: ${end.split('T').first}',
                   style: const TextStyle(color: Colors.white60, fontSize: 11)),
             ]);
           },
         ),
         const Divider(height: 22),
-        const Text('Available plans', style: TextStyle(fontWeight: FontWeight.w600)),
+        const Text('Pro editor plans', style: TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
-        _planRow('Monthly', 'monthly', '30 days'),
-        _planRow('Yearly', 'yearly', '365 days'),
-        _planRow('Lifetime', 'lifetime', 'One-time access'),
+        _planRow('Monthly Pro', '30 days', 'Pro Photo Editor + Pro Video Editor'),
+        _planRow('Lifetime Pro', 'One-time access', 'Pro Photo Editor + Pro Video Editor forever'),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(11),
+          decoration: BoxDecoration(
+            color: const Color(0xFF192A35),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF31535A)),
+          ),
+          child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('AI Coins are separate', style: TextStyle(
+                color: Color(0xFFFFD479), fontWeight: FontWeight.bold, fontSize: 12)),
+            SizedBox(height: 4),
+            Text('AI photo/video generation and other paid AI services use separately purchased coins. Neither Monthly nor Lifetime includes unlimited AI generations or monthly bonus coins.',
+                style: TextStyle(color: Colors.white70, fontSize: 11)),
+          ]),
+        ),
         const SizedBox(height: 8),
-        const Text('Plan prices and secure payment activation are pending payment-gateway setup. No payment will be taken until the final price and gateway are configured.',
+        const Text('Prices, coin packages and secure payment activation will appear after API costs and the payment gateway are finalized. No payment is taken here yet.',
             style: TextStyle(color: Colors.white38, fontSize: 10)),
       ]),
     ),
   );
 
-  Widget _planRow(String name, String code, String duration) => ListTile(
+  Widget _planRow(String name, String duration, String benefits) => ListTile(
     dense: true,
     contentPadding: EdgeInsets.zero,
     leading: const Icon(Icons.verified_outlined, color: Color(0xFF55DCCB)),
     title: Text(name),
-    subtitle: Text(duration),
-    trailing: const Text('Price pending', style: TextStyle(color: Colors.white54, fontSize: 10)),
+    subtitle: Text('$duration • $benefits'),
+    trailing: const Text('Price pending',
+        style: TextStyle(color: Colors.white54, fontSize: 10)),
   );
 }
 

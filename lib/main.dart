@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'local_editors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const supabaseUrl = 'https://lmpvwgzpyprsqxcxecss.supabase.co';
@@ -392,7 +393,8 @@ class Feature {
 
 const features = [
   Feature('AI Photo', 'Turn a text idea into an image', Icons.auto_awesome, needsPhoto: false),
-  Feature('Photo Editing', 'Choose a photo to edit', Icons.tune),
+  Feature('Photo Editing', '20+ filters, preview and save', Icons.tune),
+  Feature('Video Editor', 'Pick and preview videos', Icons.video_camera_back),
   Feature('Background Remover', 'Prepare a photo for background removal', Icons.layers_clear),
   Feature('Photo Enhancer', 'Choose a photo to enhance', Icons.hd),
   Feature('Photo to Video', 'Prepare a photo for animation', Icons.movie),
@@ -521,7 +523,11 @@ class _HomeScreenState extends State<HomeScreen> {
             child: InkWell(
               borderRadius: BorderRadius.circular(18),
               onTap: () => Navigator.push(context, MaterialPageRoute(
-                builder: (_) => FeatureScreen(feature: feature),
+                builder: (_) => feature.title == 'Photo Editing' || feature.title == 'Photo Enhancer'
+                    ? const LocalPhotoEditorScreen()
+                    : feature.title == 'Video Editor'
+                        ? const LocalVideoEditorScreen()
+                        : FeatureScreen(feature: feature),
               )),
               child: Padding(
                 padding: const EdgeInsets.all(15),

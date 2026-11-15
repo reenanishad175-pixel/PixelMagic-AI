@@ -101,17 +101,12 @@ class _LoginScreenState extends State<LoginScreen> {
         if (password.text.length < 6) {
           throw const AuthException('Password must be at least 6 characters.');
         }
-        final response = await auth.signUp(
+        await auth.signUp(
           email: email.text.trim(),
           password: password.text,
           data: {'mobile_number': normalizedPhone},
         );
-        if (response.session != null) {
-          await auth.updateUser(UserAttributes(phone: normalizedPhone));
-          if (mounted) setState(() => notice = 'Account created. Check your mobile for the verification code to enable phone login.');
-        } else {
-          if (mounted) setState(() => notice = 'Account created. Verify your email first. Then phone login can be linked and verified in account settings.');
-        }
+        if (mounted) setState(() => notice = 'Registration complete. Please verify your email using the link sent to your Gmail/email inbox.');
       } else if (usePhone) {
         if (normalizedPhone.isEmpty) {
           throw const AuthException('Please enter a valid 10-digit Indian mobile number.');
@@ -195,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
         TextButton(onPressed: busy ? null : () => setState(() { creating = !creating; error = null; notice = null; }), child: Text(creating ? 'Already registered? Login' : 'New here? Register')),
         if (creating)
-          const Padding(padding: EdgeInsets.only(top: 8), child: Text('Register with email, mobile number and password. Phone login becomes available after mobile verification is configured.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 11))),
+          const Padding(padding: EdgeInsets.only(top: 8), child: Text('Register with email, mobile number and password. Verify your email from the link sent to your inbox.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 11))),
       ],
     )),
   )));
@@ -244,8 +239,6 @@ class HomeScreen extends StatelessWidget {
         ]),
       ),
       const SizedBox(height: 16),
-      const PhoneLinkCard(),
-      const SizedBox(height: 12),
       const CreditsPanel(),
       const SizedBox(height: 24),
       const Text('Creative tools', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
@@ -389,101 +382,3 @@ class CreditsPanel extends StatelessWidget {
 }
 
 
-class PhoneLinkCard extends StatefulWidget {
-  const PhoneLinkCard({super.key});
-  @override
-  State<PhoneLinkCard> createState() => _PhoneLinkCardState();
-}
-
-class _PhoneLinkCardState extends State<PhoneLinkCard> {
-  final phone = TextEditingController();
-  final otp = TextEditingController();
-  bool sending = false, verifying = false, codeSent = false, linked = false;
-  String? message;
-  String? failure;
-
-  String get normalizedPhone {
-    final digits = phone.text.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digits.startsWith('91') && digits.length == 12) return '+$digits';
-    if (digits.length == 10) return '+91$digits';
-    return '';
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    final metadata = Supabase.instance.client.auth.currentUser?.userMetadata;
-    final saved = metadata?['mobile_number'] as String?;
-    if (saved != null && saved.startsWith('+91')) phone.text = saved.substring(3);
-    final currentPhone = Supabase.instance.client.auth.currentUser?.phone;
-    linked = currentPhone != null && currentPhone.isNotEmpty;
-  }
-
-  Future<void> sendCode() async {
-    if (normalizedPhone.isEmpty) {
-      setState(() => failure = 'Enter a valid 10-digit mobile number.');
-      return;
-    }
-    setState(() { sending = true; failure = null; message = null; });
-    try {
-      await Supabase.instance.client.auth.updateUser(UserAttributes(phone: normalizedPhone));
-      if (mounted) setState(() { codeSent = true; message = 'Verification code sent by SMS. Enter it below.'; });
-    } on AuthException catch (e) {
-      if (mounted) setState(() => failure = e.message);
-    } catch (_) {
-      if (mounted) setState(() => failure = 'Could not send the code. Check SMS provider setup.');
-    }
-    if (mounted) setState(() => sending = false);
-  }
-
-  Future<void> verifyCode() async {
-    setState(() { verifying = true; failure = null; message = null; });
-    try {
-      await Supabase.instance.client.auth.verifyOTP(
-        phone: normalizedPhone,
-        token: otp.text.trim(),
-        type: OtpType.sms,
-      );
-      if (mounted) setState(() { linked = true; codeSent = false; message = 'Mobile number verified. You can now log in with this number and password.'; });
-    } on AuthException catch (e) {
-      if (mounted) setState(() => failure = e.message);
-    } catch (_) {
-      if (mounted) setState(() => failure = 'Verification failed. Please check the code and try again.');
-    }
-    if (mounted) setState(() => verifying = false);
-  }
-
-  @override
-  void dispose() { phone.dispose(); otp.dispose(); super.dispose(); }
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(color: const Color(0xFF171A29), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFF39314F))),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        const Icon(Icons.phone_android, color: Color(0xFFC2AEFF)),
-        const SizedBox(width: 9),
-        const Expanded(child: Text('Mobile login', style: TextStyle(fontWeight: FontWeight.bold))),
-        if (linked) const Icon(Icons.verified, color: Colors.greenAccent, size: 20),
-      ]),
-      const SizedBox(height: 8),
-      Text(linked ? 'Your mobile number is verified.' : 'Verify your mobile number to use it for login.', style: const TextStyle(color: Colors.white60, fontSize: 12)),
-      if (!linked) ...[
-        const SizedBox(height: 12),
-        TextField(controller: phone, keyboardType: TextInputType.phone, maxLength: 10, decoration: const InputDecoration(labelText: 'Mobile number', prefixText: '+91 ', counterText: '')),
-        if (codeSent) ...[
-          const SizedBox(height: 8),
-          TextField(controller: otp, keyboardType: TextInputType.number, maxLength: 6, decoration: const InputDecoration(labelText: 'SMS verification code', counterText: '')),
-        ],
-        const SizedBox(height: 8),
-        SizedBox(width: double.infinity, child: FilledButton(
-          onPressed: sending || verifying ? null : codeSent ? verifyCode : sendCode,
-          child: Text(sending ? 'Sending…' : verifying ? 'Verifying…' : codeSent ? 'Verify mobile number' : 'Send verification code'),
-        )),
-      ],
-      if (message != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(message!, style: const TextStyle(color: Colors.greenAccent, fontSize: 12))),
-      if (failure != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(failure!, style: const TextStyle(color: Colors.redAccent, fontSize: 12))),
-    ]),
-  );
-}

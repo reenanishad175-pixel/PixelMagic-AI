@@ -24,9 +24,10 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
   final previewKey = GlobalKey();
   XFile? photo;
   double brightness = 0, contrast = 1, saturation = 1, warmth = 0;
-  double rotation = 0;
+  double rotation = 0, zoom = 1, frameWidth = 0;
   bool flip = false, original = false, saving = false;
   String preset = 'Original';
+  String overlayText = '';
 
   List<double> get matrix {
     final s = saturation, c = contrast;
@@ -41,7 +42,7 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
 
   Future<void> choose() async {
     final p = await picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-    if (p != null && mounted) setState(() { photo=p; brightness=0; contrast=1; saturation=1; warmth=0; rotation=0; flip=false; preset='Original'; original=false; });
+    if (p != null && mounted) setState(() { photo=p; brightness=0; contrast=1; saturation=1; warmth=0; rotation=0; zoom=1; frameWidth=0; flip=false; preset='Original'; original=false; overlayText=''; });
   }
   void setPreset(String p) {
     setState(() {
@@ -87,9 +88,23 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
         control('Contrast',contrast,.5,1.8,(v)=>contrast=v),
         control('Saturation',saturation,0,2,(v)=>saturation=v),
         control('Temperature',warmth,-1,1,(v)=>warmth=v),
+        const Text('01 · Professional Color Lab',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
+        const SizedBox(height:6),
         const Text('Professional presets',style:TextStyle(fontWeight:FontWeight.bold)),
         Wrap(spacing:7,children:['Original','Cinematic','Vivid','Warm','Cool','Matte','B&W','Moody'].map((p)=>ChoiceChip(label:Text(p),selected:preset==p,onSelected:(_)=>setPreset(p))).toList()),
+        const SizedBox(height:16),
+        const Text('02 · Composition & Crop',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
+        control('Crop / Zoom',zoom,1,2.5,(v)=>zoom=v),
         const SizedBox(height:10),
+        const Text('03 · Creative Studio',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
+        control('Frame thickness',frameWidth,0,4,(v)=>frameWidth=v),
+        OutlinedButton.icon(onPressed:() async {
+          final t=TextEditingController(text:overlayText);
+          final value=await showDialog<String>(context:context,builder:(ctx)=>AlertDialog(title:const Text('Add photo title / watermark'),content:TextField(controller:t,maxLength:40),actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(ctx,t.text.trim()),child:const Text('Apply'))]));
+          t.dispose(); if(value!=null&&mounted)setState(()=>overlayText=value);
+        },icon:const Icon(Icons.text_fields),label:const Text('Add text / watermark')),
+        const SizedBox(height:10),
+        const Text('04 · Transform',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
         Wrap(spacing:8,children:[
           OutlinedButton.icon(onPressed:()=>setState(()=>rotation+=1.57079632679),icon:const Icon(Icons.rotate_right),label:const Text('Rotate 90°')),
           OutlinedButton.icon(onPressed:()=>setState(()=>flip=!flip),icon:const Icon(Icons.flip),label:const Text('Flip')),
@@ -133,6 +148,12 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
     catch(e){if(mounted)setState(()=>error=e.toString().replaceFirst('Exception: ',''));}
     finally{if(mounted)setState(()=>busy=false);}
   }
+  String? backgroundPath;
+  Future<void> chooseBackground() async {
+    final p=await FilePicker.platform.pickFiles(type:FileType.custom,allowedExtensions:['jpg','jpeg','png','mp4','mov','m4v']);
+    final path=p?.files.single.path;
+    if(path!=null&&mounted)setState(()=>backgroundPath=path);
+  }
   Future<void> music() async {final p=await FilePicker.platform.pickFiles(type:FileType.audio);final path=p?.files.single.path;if(path!=null)await run((v)=>LocalVideoEngine.addMusic(input:v,audio:path),'Music added and exported.');}
   Future<void> title() async {
     final t=TextEditingController();
@@ -154,32 +175,40 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
         ClipRRect(borderRadius:BorderRadius.circular(14),child:AspectRatio(aspectRatio:c.value.aspectRatio,child:VideoPlayer(c))),
         Row(children:[IconButton.filled(onPressed:busy?null:()=>setState(()=>c.value.isPlaying?c.pause():c.play()),icon:Icon(c.value.isPlaying?Icons.pause:Icons.play_arrow)),Expanded(child:VideoProgressIndicator(c,allowScrubbing:!busy,padding:const EdgeInsets.all(12))),Text(time(c.value.position)+' / '+time(duration),style:const TextStyle(fontSize:10))]),
         OutlinedButton.icon(onPressed:busy?null:choose,icon:const Icon(Icons.video_file),label:const Text('Choose another video')),
-        const Text('Timeline · Trim',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
+        const Text('01 · Timeline & Clip Editing',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
         if(max>1)RangeSlider(min:0,max:max,values:RangeValues(start.clamp(0,max),end.clamp(0,max)),onChanged:busy?null:(v)=>setState(() { start=v.start; end=v.end; })),
         FilledButton.tonalIcon(onPressed:busy||end<=start?null:()=>run((v)=>LocalVideoEngine.trim(input:v,start:Duration(milliseconds:(start*1000).round()),end:Duration(milliseconds:(end*1000).round())),'Trimmed video exported.'),icon:const Icon(Icons.content_cut),label:const Text('Trim and export')),
-        const SizedBox(height:12),const Text('Speed & Audio',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
+        const SizedBox(height:12),const Text('02 · Speed & Motion',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
         _slider('Speed',speed,.5,2,'×',(v)=>speed=v),
         FilledButton.tonalIcon(onPressed:busy||speed==1?null:()=>run((v)=>LocalVideoEngine.setSpeed(input:v,speed:speed),'Speed updated.'),icon:const Icon(Icons.speed),label:const Text('Apply speed')),
         _slider('Volume',volume,0,2,'',(v)=>volume=v),
         FilledButton.tonalIcon(onPressed:busy||volume==1?null:()=>run((v)=>LocalVideoEngine.setVolume(input:v,volume:volume),'Volume updated.'),icon:const Icon(Icons.volume_up),label:const Text('Apply volume')),
-        const SizedBox(height:12),const Text('Color grading',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
+        const SizedBox(height:12),const Text('03 · Professional Color Grading',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
         Wrap(spacing:7,runSpacing:7,children:['Original','Cinematic','Vintage','Retro','B&W','HDR','Vivid','Warm','Cool','Film','Moody','Portrait'].map((p)=>ChoiceChip(label:Text(p),selected:filter==p,onSelected:busy||p=='Original'?null:(_)=>setState(()=>filter=p))).toList()),
         FilledButton.tonalIcon(onPressed:busy||filter=='Original'?null:()=>run((v)=>LocalVideoEngine.applyFilter(input:v,filter:filter),filter+' look applied.'),icon:const Icon(Icons.color_lens),label:const Text('Apply selected look')),
-        const SizedBox(height:12),
+        const SizedBox(height:12),const Text('04 · Audio Studio',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
         Wrap(spacing:8,children:[
           OutlinedButton.icon(onPressed:busy?null:music,icon:const Icon(Icons.music_note),label:const Text('Add music')),
           OutlinedButton.icon(onPressed:busy?null:title,icon:const Icon(Icons.text_fields),label:const Text('Add title')),
           OutlinedButton.icon(onPressed:busy?null:merge,icon:const Icon(Icons.call_merge),label:const Text('Merge clip')),
         ]),
+        const SizedBox(height:12),const Text('05 · Background, Effects & Motion',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
+        Wrap(spacing:8,children:[
+          OutlinedButton.icon(onPressed:busy?null:()=>run((v)=>LocalVideoEngine.reverse(input:v),'Video reversed.'),icon:const Icon(Icons.swap_horiz),label:const Text('Reverse')),
+          OutlinedButton.icon(onPressed:busy?null:()=>run((v)=>LocalVideoEngine.fade(input:v),'Fade in/out applied.'),icon:const Icon(Icons.gradient),label:const Text('Fade transition')),
+        ]),
+        OutlinedButton.icon(onPressed:busy?null:chooseBackground,icon:const Icon(Icons.wallpaper),label:Text(backgroundPath==null?'Choose photo/video background':'Background selected')),
+        FilledButton.tonalIcon(onPressed:busy||backgroundPath==null?null:()=>run((v)=>LocalVideoEngine.chromaKeyBackground(input:v,background:backgroundPath!),'Green-screen background replaced. Use a solid green source.'),icon:const Icon(Icons.layers),label:const Text('Replace green background')),
       ],
       if(busy)const Padding(padding:EdgeInsets.all(14),child:Center(child:CircularProgressIndicator())),
       if(status!=null)Text(status!,style:const TextStyle(color:_gold)),
       if(error!=null)Text(error!,style:const TextStyle(color:Colors.redAccent)),
       const SizedBox(height:14),
-      _planned(Icons.layers,'Green Screen / Background Replacement','Chroma key and replacement background are the next video-engine task.'),
+      _planned(Icons.person_search,'AI Video Background Removal','AI segmentation for normal backgrounds still needs a dedicated video model/API.'),
       _planned(Icons.person_search,'AI Video Background Removal','Requires a video segmentation model or configured AI video API.'),
       _planned(Icons.timeline,'Multi-track timeline, keyframes & motion tracking','Requires a dedicated non-linear editing project engine.'),
-      _planned(Icons.swap_horiz,'Transitions, speed ramp, reverse & 4K export controls','Not active in this build yet.'),
+      _planned(Icons.timeline,'Multi-track timeline, keyframes & motion tracking','Needs a dedicated non-linear editing project engine; not active yet.'),
+      _planned(Icons.high_quality,'2K / 4K export, speed ramp & advanced transitions','Not active yet; device performance and codec support must be tested.'),
     ]),floatingActionButton:c==null?FloatingActionButton.extended(onPressed:choose,icon:const Icon(Icons.video_library),label:const Text('Choose video')):null);
   }
   Widget _slider(String title,double value,double min,double max,String suffix,ValueChanged<double> change)=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Row(children:[Expanded(child:Text(title)),Text(value.toStringAsFixed(2)+suffix,style:const TextStyle(color:_gold))]),Slider(value:value,min:min,max:max,onChanged:busy?null:(v)=>setState(()=>change(v)))]);

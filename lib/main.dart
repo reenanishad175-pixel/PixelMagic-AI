@@ -75,8 +75,11 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         await Supabase.instance.client.auth.signInWithPassword(email: email.text.trim(), password: password.text);
       }
-    } on AuthException catch (e) { setState(() => error = e.message); }
-      catch (e) { setState(() => error = 'Something went wrong. Please try again.'); }
+    } on AuthException catch (e) {
+      if (mounted) setState(() => error = e.message);
+    } catch (e) {
+      if (mounted) setState(() => error = 'Something went wrong. Please try again.');
+    }
     if (mounted) setState(() => busy = false);
   }
   @override

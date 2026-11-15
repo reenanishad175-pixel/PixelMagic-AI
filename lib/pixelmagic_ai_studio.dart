@@ -1,8 +1,11 @@
 // ignore_for_file: deprecated_member_use
 
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:video_player/video_player.dart';
+import 'local_downloads.dart';
 
 class PixelMagicAiStudio extends StatefulWidget {
   const PixelMagicAiStudio({super.key});
@@ -13,6 +16,7 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
   final prompt = TextEditingController();
   String task = 'image';
   bool busy = false;
+  bool saving = false;
   String? error, imageUrl, stage;
   VideoPlayerController? video;
 
@@ -64,6 +68,35 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
       if (mounted) setState(() => error = e.toString().replaceFirst('Exception: ', ''));
     } finally { if (mounted) setState(() => busy = false); }
   }
+
+  Future<void> saveResult() async {
+    if (saving) return;
+    final url = imageUrl ?? (video?.dataSource);
+    if (url == null) return;
+    setState(() => saving = true);
+    try {
+      final uri = Uri.parse(url);
+      final request = await HttpClient().getUrl(uri);
+      final response = await request.close();
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception('Could not download generated media.');
+      }
+      final dir = await getApplicationDocumentsDirectory();
+      final folder = Directory('${dir.path}/PixelMagicDownloads');
+      if (!await folder.exists()) await folder.create(recursive: true);
+      final extension = imageUrl != null ? 'png' : 'mp4';
+      final path = '${folder.path}/PixelMagic_AI_${DateTime.now().millisecondsSinceEpoch}.$extension';
+      final file = File(path);
+      await response.pipe(file.openWrite());
+      await LocalDownloads.registerFile(path, mediaType: imageUrl != null ? 'image' : 'video');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('AI result saved to Downloads.')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
   @override
   void dispose() { prompt.dispose(); video?.dispose(); super.dispose(); }
   @override
@@ -83,8 +116,8 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
       FilledButton.icon(onPressed: busy ? null : generate, icon: const Icon(Icons.auto_awesome), label: Text(busy ? 'Generating…' : task == 'image' ? 'Generate image' : 'Generate video')),
       if (busy) ...[const SizedBox(height: 16), const LinearProgressIndicator(), if (stage != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(stage!))],
       if (error != null) Padding(padding: const EdgeInsets.only(top: 14), child: Text(error!, style: const TextStyle(color: Colors.redAccent))),
-      if (imageUrl != null) ...[const SizedBox(height: 18), ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.network(imageUrl!, errorBuilder: (_, __, ___) => const Text('Could not load generated image.'))), SelectableText(imageUrl!, style: const TextStyle(fontSize: 11))],
-      if (video != null && video!.value.isInitialized) ...[const SizedBox(height: 18), AspectRatio(aspectRatio: video!.value.aspectRatio, child: VideoPlayer(video!)), FilledButton.tonalIcon(onPressed: () => setState(() => video!.value.isPlaying ? video!.pause() : video!.play()), icon: Icon(video!.value.isPlaying ? Icons.pause : Icons.play_arrow), label: const Text('Play / Pause'))],
+      if (imageUrl != null) ...[const SizedBox(height: 18), ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.network(imageUrl!, errorBuilder: (_, __, ___) => const Text('Could not load generated image.'))), FilledButton.icon(onPressed: saving ? null : saveResult, icon: const Icon(Icons.download), label: Text(saving ? 'Saving…' : 'Save image to Downloads')), SelectableText(imageUrl!, style: const TextStyle(fontSize: 11))],
+      if (video != null && video!.value.isInitialized) ...[const SizedBox(height: 18), AspectRatio(aspectRatio: video!.value.aspectRatio, child: VideoPlayer(video!)), FilledButton.tonalIcon(onPressed: () => setState(() => video!.value.isPlaying ? video!.pause() : video!.play()), icon: Icon(video!.value.isPlaying ? Icons.pause : Icons.play_arrow), label: const Text('Play / Pause')), FilledButton.icon(onPressed: saving ? null : saveResult, icon: const Icon(Icons.download), label: Text(saving ? 'Saving…' : 'Save video to Downloads'))],
       const SizedBox(height: 14),
       const Text('AI generations may incur fal.ai usage charges.', style: TextStyle(color: Colors.white54, fontSize: 12)),
     ]),

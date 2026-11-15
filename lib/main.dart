@@ -742,12 +742,12 @@ class _FeatureScreenState extends State<FeatureScreen> {
         ),
         const SizedBox(height: 16),
         FilledButton.icon(
-          onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Your photo and prompt are ready. AI processing will be enabled when a free, verified generation service is integrated.'))),
-          icon: const Icon(Icons.auto_awesome),
-          label: const Text('Prepare my creation'),
+          onPressed: null,
+          icon: const Icon(Icons.cloud_off),
+          label: const Text('AI service will be connected after testing'),
         ),
         const SizedBox(height: 12),
-        const Text('Photo selection and preview work on your phone. AI generation and export are not active in this test build yet.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 11)),
+        const Text('This tool needs an AI service/API. Photo selection and prompt entry are available now; generation will be enabled after the first APK test.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 11)),
       ]),
     );
   }

@@ -154,12 +154,13 @@ class LocalVideoEngine {
 
   static Future<String> fade({
     required String input,
+    required double durationSeconds,
     double seconds = 1.0,
   }) async {
     if (seconds <= 0 || seconds > 5) throw ArgumentError('Fade duration must be 0-5 seconds.');
     final output = await _outputPath('PixelMagic_Fade');
     final command = '-y -i ' + _quote(input) +
-        ' -vf "fade=t=in:st=0:d=$seconds,fade=t=out:st=99999:d=$seconds" ' +
+        ' -vf "fade=t=in:st=0:d=$seconds,fade=t=out:st=${(durationSeconds-seconds).clamp(0, durationSeconds)}:d=$seconds" ' +
         '-c:v mpeg4 -q:v 3 -c:a aac -b:a 160k -movflags +faststart ' + _quote(output);
     return _run(command, output, 'Video fade');
   }
@@ -170,10 +171,45 @@ class LocalVideoEngine {
   }) async {
     final output = await _outputPath('PixelMagic_GreenScreen');
     final command = '-y -i ' + _quote(input) + ' -stream_loop -1 -i ' + _quote(background) +
-        ' -filter_complex "[1:v]scale=iw:ih[bg];[0:v]chromakey=0x00FF00:0.18:0.08[fg];[bg][fg]overlay=shortest=1[v]" ' +
+        ' -filter_complex "[1:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720[bg];[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,chromakey=0x00FF00:0.18:0.08[fg];[bg][fg]overlay=shortest=1[v]" ' +
         '-map "[v]" -map "0:a?" -c:v mpeg4 -q:v 3 -c:a aac -b:a 160k -shortest -movflags +faststart ' +
         _quote(output);
     return _run(command, output, 'Green screen replacement');
+  }
+
+
+  static Future<String> adjustColor({
+    required String input,
+    required double brightness,
+    required double contrast,
+    required double saturation,
+  }) async {
+    final output = await _outputPath('PixelMagic_ColorGrade');
+    final filter = 'eq=brightness=${brightness.toStringAsFixed(3)}:contrast=${contrast.toStringAsFixed(3)}:saturation=${saturation.toStringAsFixed(3)}';
+    return _run('-y -i ' + _quote(input) + ' -vf "' + filter +
+        '" -c:v mpeg4 -q:v 3 -c:a copy -movflags +faststart ' + _quote(output), output, 'Color grading');
+  }
+
+  static Future<String> crop({
+    required String input,
+    double fraction = 0.85,
+  }) async {
+    if (fraction < 0.5 || fraction > 1) throw ArgumentError('Crop size out of range.');
+    final output = await _outputPath('PixelMagic_Crop');
+    final f = fraction.toStringAsFixed(3);
+    return _run('-y -i ' + _quote(input) + ' -vf "crop=iw*' + f + ':ih*' + f +
+        ':(iw-ow)/2:(ih-oh)/2" -c:v mpeg4 -q:v 3 -c:a copy -movflags +faststart ' +
+        _quote(output), output, 'Video crop');
+  }
+
+  static Future<String> exportResolution({
+    required String input,
+    required int height,
+  }) async {
+    if (![720, 1080, 1440, 2160].contains(height)) throw ArgumentError('Unsupported export resolution.');
+    final output = await _outputPath('PixelMagic_${height}p');
+    return _run('-y -i ' + _quote(input) + ' -vf "scale=-2:$height" -c:v mpeg4 -q:v 2 -c:a aac -b:a 192k -movflags +faststart ' +
+        _quote(output), output, 'Resolution export');
   }
 
 }

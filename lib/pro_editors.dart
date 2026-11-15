@@ -71,7 +71,7 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
   }
   Widget control(String name,double value,double min,double max,ValueChanged<double> update) => Column(crossAxisAlignment: CrossAxisAlignment.start,children:[
     Row(children:[Expanded(child:Text(name)),Text(value.toStringAsFixed(2),style:const TextStyle(color:_gold))]),
-    Slider(value:value,min:min,max:max,onChanged:original?null:(v)=>setState(()=>{update(v),preset='Custom'}))
+    Slider(value:value,min:min,max:max,onChanged:original?null:(v)=>setState(() { update(v); preset='Custom'; }))
   ]);
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -91,7 +91,7 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
         Wrap(spacing:8,children:[
           OutlinedButton.icon(onPressed:()=>setState(()=>rotation+=1.57079632679),icon:const Icon(Icons.rotate_right),label:const Text('Rotate 90°')),
           OutlinedButton.icon(onPressed:()=>setState(()=>flip=!flip),icon:const Icon(Icons.flip),label:const Text('Flip')),
-          OutlinedButton.icon(onPressed:()=>setState(()=>{rotation=0,flip=false}),icon:const Icon(Icons.restart_alt),label:const Text('Reset')),
+          OutlinedButton.icon(onPressed:()=>setState(() { rotation=0; flip=false; }),icon:const Icon(Icons.restart_alt),label:const Text('Reset')),
         ]),
         FilledButton.icon(onPressed:saving?null:save,icon:const Icon(Icons.high_quality),label:Text(saving?'Exporting…':'Export PNG')),
         OutlinedButton.icon(onPressed:choose,icon:const Icon(Icons.photo_library),label:const Text('Change photo')),
@@ -121,12 +121,12 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
   Future<void> load(String path) async {
     setState(()=>busy=true); await controller?.dispose();
     final c=VideoPlayerController.file(File(path));
-    try { await c.initialize(); if(!mounted){await c.dispose();return;} setState(()=>{controller=c,start=0,end=c.value.duration.inMilliseconds/1000,busy=false,error=null,status=null}); }
-    catch(_){await c.dispose();if(mounted)setState(()=>{busy=false,error='This video could not be opened.'});}
+    try { await c.initialize(); if(!mounted){await c.dispose();return;} setState(() { controller=c; start=0; end=c.value.duration.inMilliseconds/1000; busy=false; error=null; status=null; }); }
+    catch(_){await c.dispose();if(mounted)setState(() { busy=false; error='This video could not be opened.'; });}
   }
   Future<void> run(Future<String> Function(String) task,String done) async {
     final c=controller; if(c==null||busy)return;
-    setState(()=>{busy=true,error=null,status='Processing on this device…'});
+    setState(() { busy=true; error=null; status='Processing on this device…'; });
     try { await c.pause(); final output=await task(c.dataSource); await load(output); if(mounted)setState(()=>status=done); try{await Gal.requestAccess();await Gal.putVideo(output);}catch(_){} }
     catch(e){if(mounted)setState(()=>error=e.toString().replaceFirst('Exception: ',''));}
     finally{if(mounted)setState(()=>busy=false);}
@@ -153,7 +153,7 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
         Row(children:[IconButton.filled(onPressed:busy?null:()=>setState(()=>c.value.isPlaying?c.pause():c.play()),icon:Icon(c.value.isPlaying?Icons.pause:Icons.play_arrow)),Expanded(child:VideoProgressIndicator(c,allowScrubbing:!busy,padding:const EdgeInsets.all(12))),Text(time(c.value.position)+' / '+time(duration),style:const TextStyle(fontSize:10))]),
         OutlinedButton.icon(onPressed:busy?null:choose,icon:const Icon(Icons.video_file),label:const Text('Choose another video')),
         const Text('Timeline · Trim',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
-        if(max>1)RangeSlider(min:0,max:max,values:RangeValues(start.clamp(0,max),end.clamp(0,max)),onChanged:busy?null:(v)=>setState(()=>{start=v.start,end=v.end})),
+        if(max>1)RangeSlider(min:0,max:max,values:RangeValues(start.clamp(0,max),end.clamp(0,max)),onChanged:busy?null:(v)=>setState(() { start=v.start; end=v.end; })),
         FilledButton.tonalIcon(onPressed:busy||end<=start?null:()=>run((v)=>LocalVideoEngine.trim(input:v,start:Duration(milliseconds:(start*1000).round()),end:Duration(milliseconds:(end*1000).round())),'Trimmed video exported.'),icon:const Icon(Icons.content_cut),label:const Text('Trim and export')),
         const SizedBox(height:12),const Text('Speed & Audio',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
         _slider('Speed',speed,.5,2,'×',(v)=>speed=v),
@@ -177,7 +177,7 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
       _planned(Icons.layers,'Green Screen / Background Replacement','Chroma key and replacement background are the next video-engine task.'),
       _planned(Icons.person_search,'AI Video Background Removal','Requires a video segmentation model or configured AI video API.'),
       _planned(Icons.timeline,'Multi-track timeline, keyframes & motion tracking','Requires a dedicated non-linear editing project engine.'),
-      _planned(Icons.transition_filled,'Transitions, speed ramp, reverse & 4K export controls','Not active in this build yet.'),
+      _planned(Icons.swap_horiz,'Transitions, speed ramp, reverse & 4K export controls','Not active in this build yet.'),
     ]),floatingActionButton:c==null?FloatingActionButton.extended(onPressed:choose,icon:const Icon(Icons.video_library),label:const Text('Choose video')):null);
   }
   Widget _slider(String title,double value,double min,double max,String suffix,ValueChanged<double> change)=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Row(children:[Expanded(child:Text(title)),Text(value.toStringAsFixed(2)+suffix,style:const TextStyle(color:_gold))]),Slider(value:value,min:min,max:max,onChanged:busy?null:(v)=>setState(()=>change(v)))]);

@@ -121,10 +121,10 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
       final currentRatio = output.width / output.height;
       if ((currentRatio - cropAspect).abs() > .001) {
         if (currentRatio > cropAspect) {
-          final width = (output.height * cropAspect).round().clamp(1, output.width);
+          final width = (output.height * cropAspect).round().clamp(1, output.width).toInt();
           output = img.copyCrop(output, x: (output.width - width) ~/ 2, y: 0, width: width, height: output.height);
         } else {
-          final height = (output.width / cropAspect).round().clamp(1, output.height);
+          final height = (output.width / cropAspect).round().clamp(1, output.height).toInt();
           output = img.copyCrop(output, x: 0, y: (output.height - height) ~/ 2, width: output.width, height: height);
         }
       }
@@ -156,7 +156,7 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
             p.a.toInt());
         }
       }
-      if (blur > .5) output = img.gaussianBlur(output, radius: blur.round().clamp(1, 20));
+      if (blur > .5) output = img.gaussianBlur(output, radius: blur.round().clamp(1, 20).toInt());
       if (frameWidth > 0) {
         final border = (frameWidth * (w / 180)).round().clamp(1, 80);
         for (var y = 0; y < h; y++) {
@@ -169,7 +169,7 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
       }
       if (overlayText.isNotEmpty) {
         img.drawString(output, overlayText, font: img.arial48,
-          x: 20, y: (h - 80).clamp(0, h - 1),
+          x: 20, y: (h - 80).clamp(0, h - 1).toInt(),
           color: img.ColorRgb8(255, 255, 255));
       }
       final path = await LocalDownloads.saveImageBytes(img.encodePng(output));

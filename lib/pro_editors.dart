@@ -28,7 +28,7 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
   final previewKey = GlobalKey();
   XFile? photo;
   double brightness = 0, contrast = 1, saturation = 1, warmth = 0;
-  double rotation = 0, zoom = 1, frameWidth = 0, redMix = 1, greenMix = 1, blueMix = 1, blur = 0, cropAspect = .8;
+  double rotation = 0, zoom = 1, frameWidth = 0, redMix = 1, greenMix = 1, blueMix = 1, blur = 0, cropAspect = .8, tint = 0, vignette = 0;
   bool flip = false, original = false, saving = false;
   String preset = 'Original';
   String overlayText = '';
@@ -38,7 +38,7 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
     final r = .213 * (1 - s), g = .715 * (1 - s), b = .072 * (1 - s);
     return [
       (r+s)*c*redMix,g*c*redMix,b*c*redMix,0,128*(1-c)+brightness*255+warmth*32,
-      r*c*greenMix,(g+s)*c*greenMix,b*c*greenMix,0,128*(1-c)+brightness*255,
+      r*c*greenMix,(g+s)*c*greenMix,b*c*greenMix,0,128*(1-c)+brightness*255+tint*24,
       r*c*blueMix,g*c*blueMix,(b+s)*c*blueMix,0,128*(1-c)+brightness*255-warmth*32,
       0,0,0,1,0
     ];
@@ -58,6 +58,10 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
       if (p=='Matte') { contrast=.86; saturation=.78; brightness=.04; }
       if (p=='B&W') saturation=0;
       if (p=='Moody') { contrast=1.24; saturation=.72; brightness=-.07; }
+      if (p=='Sepia') { warmth=.8; saturation=.62; contrast=1.08; }
+      if (p=='Soft') { contrast=.88; saturation=.92; brightness=.025; }
+      if (p=='High Key') { brightness=.16; contrast=.9; saturation=.82; }
+      if (p=='Low Key') { brightness=-.15; contrast=1.2; saturation=.9; }
     });
   }
 
@@ -65,7 +69,7 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('pixelmagic_photo_custom_preset', jsonEncode({
       'brightness': brightness, 'contrast': contrast, 'saturation': saturation,
-      'warmth': warmth, 'red': redMix, 'green': greenMix, 'blue': blueMix,
+      'warmth': warmth, 'red': redMix, 'green': greenMix, 'blue': blueMix, 'tint': tint, 'vignette': vignette,
       'zoom': zoom, 'blur': blur, 'frame': frameWidth, 'rotation': rotation,
       'flip': flip, 'text': overlayText, 'aspect': cropAspect,
     }));
@@ -89,6 +93,8 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
       redMix = (data['red'] as num).toDouble();
       greenMix = (data['green'] as num).toDouble();
       blueMix = (data['blue'] as num).toDouble();
+      tint = (data['tint'] as num?)?.toDouble() ?? 0;
+      vignette = (data['vignette'] as num?)?.toDouble() ?? 0;
       zoom = (data['zoom'] as num).toDouble();
       blur = (data['blur'] as num).toDouble();
       frameWidth = (data['frame'] as num).toDouble();
@@ -134,6 +140,7 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
         control('Contrast',contrast,.5,1.8,(v)=>contrast=v),
         control('Saturation',saturation,0,2,(v)=>saturation=v),
         control('Temperature',warmth,-1,1,(v)=>warmth=v),
+        control('Tint · Green / Magenta',tint,-1,1,(v)=>tint=v),
         const SizedBox(height:8),
         const Text('RGB / HSL Fine Tuning',style:TextStyle(fontWeight:FontWeight.bold)),
         control('Red channel',redMix,.5,1.8,(v)=>redMix=v),
@@ -142,7 +149,7 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
         const Text('01 · Professional Color Lab',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
         const SizedBox(height:6),
         const Text('Professional presets',style:TextStyle(fontWeight:FontWeight.bold)),
-        Wrap(spacing:7,children:['Original','Cinematic','Vivid','Warm','Cool','Matte','B&W','Moody'].map((p)=>ChoiceChip(label:Text(p),selected:preset==p,onSelected:(_)=>setPreset(p))).toList()),
+        Wrap(spacing:7,children:['Original','Cinematic','Vivid','Warm','Cool','Matte','B&W','Moody','Sepia','Soft','High Key','Low Key'].map((p)=>ChoiceChip(label:Text(p),selected:preset==p,onSelected:(_)=>setPreset(p))).toList()),
         Wrap(spacing:8,children:[
           OutlinedButton.icon(onPressed:saveCustomPreset,icon:const Icon(Icons.bookmark_add),label:const Text('Save custom preset')),
           OutlinedButton.icon(onPressed:applyCustomPreset,icon:const Icon(Icons.bookmark),label:const Text('Apply saved preset')),
@@ -162,6 +169,7 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
         ),
         control('Crop / Zoom',zoom,1,2.5,(v)=>zoom=v),
         control('Lens blur',blur,0,8,(v)=>blur=v),
+        control('Vignette',vignette,0,.85,(v)=>vignette=v),
         const SizedBox(height:10),
         const Text('03 · Creative Studio',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
         control('Frame thickness',frameWidth,0,4,(v)=>frameWidth=v),

@@ -24,7 +24,7 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
   final previewKey = GlobalKey();
   XFile? photo;
   double brightness = 0, contrast = 1, saturation = 1, warmth = 0;
-  double rotation = 0, zoom = 1, frameWidth = 0;
+  double rotation = 0, zoom = 1, frameWidth = 0, redMix = 1, greenMix = 1, blueMix = 1, blur = 0;
   bool flip = false, original = false, saving = false;
   String preset = 'Original';
   String overlayText = '';
@@ -33,16 +33,16 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
     final s = saturation, c = contrast;
     final r = .213 * (1 - s), g = .715 * (1 - s), b = .072 * (1 - s);
     return [
-      (r+s)*c,g*c,b*c,0,128*(1-c)+brightness*255+warmth*32,
-      r*c,(g+s)*c,b*c,0,128*(1-c)+brightness*255,
-      r*c,g*c,(b+s)*c,0,128*(1-c)+brightness*255-warmth*32,
+      (r+s)*c*redMix,g*c*redMix,b*c*redMix,0,128*(1-c)+brightness*255+warmth*32,
+      r*c*greenMix,(g+s)*c*greenMix,b*c*greenMix,0,128*(1-c)+brightness*255,
+      r*c*blueMix,g*c*blueMix,(b+s)*c*blueMix,0,128*(1-c)+brightness*255-warmth*32,
       0,0,0,1,0
     ];
   }
 
   Future<void> choose() async {
     final p = await picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-    if (p != null && mounted) setState(() { photo=p; brightness=0; contrast=1; saturation=1; warmth=0; rotation=0; zoom=1; frameWidth=0; flip=false; preset='Original'; original=false; overlayText=''; });
+    if (p != null && mounted) setState(() { photo=p; brightness=0; contrast=1; saturation=1; warmth=0; rotation=0; zoom=1; frameWidth=0; redMix=1; greenMix=1; blueMix=1; blur=0; flip=false; preset='Original'; original=false; overlayText=''; });
   }
   void setPreset(String p) {
     setState(() {
@@ -82,12 +82,17 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
     body: ListView(padding:const EdgeInsets.all(16),children:[
       if(photo==null) InkWell(onTap:choose,child:Container(height:230,decoration:BoxDecoration(color:_panel,borderRadius:BorderRadius.circular(18),border:Border.all(color:_gold)),child:const Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(Icons.add_photo_alternate,size:54,color:_gold),SizedBox(height:10),Text('Choose a photo to edit')])))
       else ...[
-        RepaintBoundary(key:previewKey,child:AspectRatio(aspectRatio:4/5,child:ClipRRect(borderRadius:BorderRadius.circular(16),child:ColoredBox(color:_panel,child:Stack(fit:StackFit.expand,children:[original?Image.file(File(photo!.path),fit:BoxFit.contain):Transform.rotate(angle:rotation,child:Transform(alignment:Alignment.center,transform:Matrix4.identity()..scale((flip?-1.0:1.0)*zoom,zoom),child:ColorFiltered(colorFilter:ColorFilter.matrix(matrix),child:Image.file(File(photo!.path),fit:BoxFit.contain)))),if(overlayText.isNotEmpty) Center(child:Container(padding:const EdgeInsets.symmetric(horizontal:12,vertical:6),color:Colors.black45,child:Text(overlayText,style:const TextStyle(color:Colors.white,fontSize:22,fontWeight:FontWeight.bold)))),if(frameWidth>0) DecoratedBox(decoration:BoxDecoration(border:Border.all(color:Colors.white,width:frameWidth*4))) ]))))),
+        RepaintBoundary(key:previewKey,child:AspectRatio(aspectRatio:4/5,child:ClipRRect(borderRadius:BorderRadius.circular(16),child:ColoredBox(color:_panel,child:Stack(fit:StackFit.expand,children:[original?Image.file(File(photo!.path),fit:BoxFit.contain):Transform.rotate(angle:rotation,child:Transform(alignment:Alignment.center,transform:Matrix4.identity()..scale((flip?-1.0:1.0)*zoom,zoom),child:ColorFiltered(colorFilter:ColorFilter.matrix(matrix),child:ImageFiltered(imageFilter:ui.ImageFilter.blur(sigmaX:blur,sigmaY:blur),child:Image.file(File(photo!.path),fit:BoxFit.contain))))),if(overlayText.isNotEmpty) Center(child:Container(padding:const EdgeInsets.symmetric(horizontal:12,vertical:6),color:Colors.black45,child:Text(overlayText,style:const TextStyle(color:Colors.white,fontSize:22,fontWeight:FontWeight.bold)))),if(frameWidth>0) DecoratedBox(decoration:BoxDecoration(border:Border.all(color:Colors.white,width:frameWidth*4))) ]))))),
         Row(children:[Expanded(child:Text('Preset: '+preset)),TextButton.icon(onPressed:()=>setState(()=>original=!original),icon:const Icon(Icons.compare),label:Text(original?'Show edit':'Before / After'))]),
         control('Brightness / Exposure',brightness,-.5,.5,(v)=>brightness=v),
         control('Contrast',contrast,.5,1.8,(v)=>contrast=v),
         control('Saturation',saturation,0,2,(v)=>saturation=v),
         control('Temperature',warmth,-1,1,(v)=>warmth=v),
+        const SizedBox(height:8),
+        const Text('RGB / HSL Fine Tuning',style:TextStyle(fontWeight:FontWeight.bold)),
+        control('Red channel',redMix,.5,1.8,(v)=>redMix=v),
+        control('Green channel',greenMix,.5,1.8,(v)=>greenMix=v),
+        control('Blue channel',blueMix,.5,1.8,(v)=>blueMix=v),
         const Text('01 · Professional Color Lab',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
         const SizedBox(height:6),
         const Text('Professional presets',style:TextStyle(fontWeight:FontWeight.bold)),
@@ -95,6 +100,7 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
         const SizedBox(height:16),
         const Text('02 · Composition & Crop',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
         control('Crop / Zoom',zoom,1,2.5,(v)=>zoom=v),
+        control('Lens blur',blur,0,8,(v)=>blur=v),
         const SizedBox(height:10),
         const Text('03 · Creative Studio',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
         control('Frame thickness',frameWidth,0,4,(v)=>frameWidth=v),

@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'local_editors.dart';
 import 'local_downloads.dart';
+import 'local_background_remover.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const supabaseUrl = 'https://lmpvwgzpyprsqxcxecss.supabase.co';
@@ -395,8 +396,8 @@ class Feature {
 const features = [
   Feature('AI Photo', 'Turn a text idea into an image', Icons.auto_awesome, needsPhoto: false),
   Feature('Photo Editing', '20+ filters, preview and save', Icons.tune),
-  Feature('Video Editor', 'Pick and preview videos', Icons.video_camera_back),
-  Feature('Background Remover', 'Prepare a photo for background removal', Icons.layers_clear),
+  Feature('Video Editor', 'Trim, music, text, filters and merge', Icons.video_camera_back),
+  Feature('Background Remover', 'Remove a person’s background offline', Icons.layers_clear),
   Feature('Photo Enhancer', 'Choose a photo to enhance', Icons.hd),
   Feature('Photo to Video', 'Prepare a photo for animation', Icons.movie),
   Feature('Text to Video', 'Describe the video you imagine', Icons.video_library, needsPhoto: false),
@@ -530,7 +531,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? const LocalPhotoEditorScreen()
                     : feature.title == 'Video Editor'
                         ? const LocalVideoEditorScreen()
-                        : FeatureScreen(feature: feature),
+                        : feature.title == 'Background Remover'
+                            ? const BackgroundRemoverScreen()
+                            : FeatureScreen(feature: feature),
               )),
               child: Padding(
                 padding: const EdgeInsets.all(15),

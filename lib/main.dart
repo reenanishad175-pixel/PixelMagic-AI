@@ -72,6 +72,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final name = TextEditingController();
   final email = TextEditingController();
   final phone = TextEditingController();
   final password = TextEditingController();
@@ -101,17 +102,27 @@ class _LoginScreenState extends State<LoginScreen> {
         if (password.text.length < 6) {
           throw const AuthException('Password must be at least 6 characters.');
         }
+        if (name.text.trim().isEmpty) {
+          throw const AuthException('Please enter your name.');
+        }
         await auth.signUp(
           email: email.text.trim(),
           password: password.text,
-          data: {'mobile_number': normalizedPhone},
+          data: {'full_name': name.text.trim(), 'mobile_number': normalizedPhone},
         );
         if (mounted) setState(() => notice = 'Registration complete. Please verify your email using the link sent to your Gmail/email inbox.');
       } else if (usePhone) {
         if (normalizedPhone.isEmpty) {
           throw const AuthException('Please enter a valid 10-digit Indian mobile number.');
         }
-        await auth.signInWithPassword(phone: normalizedPhone, password: password.text);
+        final response = await Supabase.instance.client.functions.invoke(
+          'phone-password-login',
+          body: {'phone': normalizedPhone, 'password': password.text},
+        );
+        if (response.status != 200 || response.data is! Map || response.data['refresh_token'] == null) {
+          throw const AuthException('Mobile number or password is incorrect.');
+        }
+        await auth.setSession(response.data['refresh_token'] as String);
       } else {
         if (email.text.trim().isEmpty) {
           throw const AuthException('Please enter your email address.');
@@ -142,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
-  void dispose() { email.dispose(); phone.dispose(); password.dispose(); super.dispose(); }
+  void dispose() { name.dispose(); email.dispose(); phone.dispose(); password.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) => Scaffold(body: Center(child: SingleChildScrollView(
@@ -156,6 +167,8 @@ class _LoginScreenState extends State<LoginScreen> {
         const Text('Create something amazing', textAlign: TextAlign.center),
         const SizedBox(height: 28),
         if (creating) ...[
+          TextField(controller: name, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Full name')),
+          const SizedBox(height: 12),
           TextField(controller: email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email address')),
           const SizedBox(height: 12),
           TextField(controller: phone, keyboardType: TextInputType.phone, maxLength: 10, decoration: const InputDecoration(labelText: 'Mobile number', prefixText: '+91 ', counterText: '')),
@@ -190,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
         TextButton(onPressed: busy ? null : () => setState(() { creating = !creating; error = null; notice = null; }), child: Text(creating ? 'Already registered? Login' : 'New here? Register')),
         if (creating)
-          const Padding(padding: EdgeInsets.only(top: 8), child: Text('Register with email, mobile number and password. Verify your email from the link sent to your inbox.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 11))),
+          const Padding(padding: EdgeInsets.only(top: 8), child: Text('Register with your name, Gmail, mobile number and password. Verify your email from the link sent to your inbox. After verification, use either Gmail or mobile number with the same password.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 11))),
       ],
     )),
   )));

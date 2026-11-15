@@ -19,7 +19,7 @@ dependencies:
   file_picker: ^8.1.7
   image: ^4.5.4
   google_mlkit_selfie_segmentation: ^1.0.2
-  ffmpeg_kit_flutter_new_video: ^3.2.0
+  ffmpeg_kit_flutter_new_video: ^2.5.8
 
 dev_dependencies:
   flutter_test:

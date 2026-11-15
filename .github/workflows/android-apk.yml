@@ -37,8 +37,8 @@ jobs:
           import re
           p = Path("android/app/build.gradle.kts")
           s = p.read_text()
-          s, min_count = re.subn(r"(?m)^\\s*minSdk\\s*=.*$", "    minSdk = 24", s, count=1)
-          s, compile_count = re.subn(r"(?m)^\\s*compileSdk\\s*=.*$", "    compileSdk = 36", s, count=1)
+          s, min_count = re.subn(r"(?m)^\s*minSdk\s*=.*$", "    minSdk = 24", s, count=1)
+          s, compile_count = re.subn(r"(?m)^\s*compileSdk\s*=.*$", "    compileSdk = 36", s, count=1)
           if min_count != 1 or compile_count != 1:
               raise SystemExit("Could not set Android minSdk/compileSdk in generated Gradle file")
           p.write_text(s)
@@ -88,20 +88,20 @@ jobs:
           source = gradle.read_text()
           if gradle.name.endswith(".kts"):
               replacement = "    compileSdk = 36"
-              pattern = r"(?m)^\\s*compileSdk(?:Version)?\\s*(?:=\\s*)?.*$"
-              insertion = r"(?m)^(\\s*android\\s*\\{)"
+              pattern = r"(?m)^\s*compileSdk(?:Version)?\s*(?:=\s*)?.*$"
+              insertion = r"(?m)^(\s*android\s*\{)"
           else:
               replacement = "    compileSdkVersion 36"
-              pattern = r"(?m)^\\s*compileSdk(?:Version)?\\s+.*$"
-              insertion = r"(?m)^(\\s*android\\s*\\{)"
+              pattern = r"(?m)^\s*compileSdk(?:Version)?\s+.*$"
+              insertion = r"(?m)^(\s*android\s*\{)"
           updated, count = re.subn(pattern, replacement, source, count=1)
           if count == 0:
-              updated, count = re.subn(insertion, r"\\1\\n" + replacement, source, count=1)
+              updated, count = re.subn(insertion, r"\1\n" + replacement, source, count=1)
           if count != 1:
-              raise SystemExit(f"Could not patch compileSdk in {gradle}; contents:\\n{source}")
+              raise SystemExit(f"Could not patch compileSdk in {gradle}; contents:\n{source}")
           gradle.write_text(updated)
           print(f"Patched {gradle} to compileSdk 36")
-          print("\\n".join(line for line in updated.splitlines() if "compileSdk" in line))
+          print("\n".join(line for line in updated.splitlines() if "compileSdk" in line))
           PY
       - name: Run Flutter tests
         run: flutter test

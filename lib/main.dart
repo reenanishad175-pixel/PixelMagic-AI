@@ -73,28 +73,81 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final email = TextEditingController();
+  final phone = TextEditingController();
   final password = TextEditingController();
-  bool creating = false, busy = false;
+  bool creating = false, busy = false, usePhone = false;
   String? error;
+  String? notice;
+
+  String get normalizedPhone {
+    final digits = phone.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.startsWith('91') && digits.length == 12) return '+$digits';
+    if (digits.length == 10) return '+91$digits';
+    return '';
+  }
 
   Future<void> submit() async {
-    setState(() { busy = true; error = null; });
+    FocusScope.of(context).unfocus();
+    setState(() { busy = true; error = null; notice = null; });
     try {
+      final auth = Supabase.instance.client.auth;
       if (creating) {
-        await Supabase.instance.client.auth.signUp(email: email.text.trim(), password: password.text);
+        if (email.text.trim().isEmpty || !email.text.contains('@')) {
+          throw const AuthException('Please enter a valid email address.');
+        }
+        if (normalizedPhone.isEmpty) {
+          throw const AuthException('Please enter a valid 10-digit Indian mobile number.');
+        }
+        if (password.text.length < 6) {
+          throw const AuthException('Password must be at least 6 characters.');
+        }
+        final response = await auth.signUp(
+          email: email.text.trim(),
+          password: password.text,
+          data: {'mobile_number': normalizedPhone},
+        );
+        if (response.session != null) {
+          await auth.updateUser(UserAttributes(phone: normalizedPhone));
+          if (mounted) setState(() => notice = 'Account created. Check your mobile for the verification code to enable phone login.');
+        } else {
+          if (mounted) setState(() => notice = 'Account created. Verify your email first. Then phone login can be linked and verified in account settings.');
+        }
+      } else if (usePhone) {
+        if (normalizedPhone.isEmpty) {
+          throw const AuthException('Please enter a valid 10-digit Indian mobile number.');
+        }
+        await auth.signInWithPassword(phone: normalizedPhone, password: password.text);
       } else {
-        await Supabase.instance.client.auth.signInWithPassword(email: email.text.trim(), password: password.text);
+        if (email.text.trim().isEmpty) {
+          throw const AuthException('Please enter your email address.');
+        }
+        await auth.signInWithPassword(email: email.text.trim(), password: password.text);
       }
     } on AuthException catch (e) {
       if (mounted) setState(() => error = e.message);
     } catch (_) {
-      if (mounted) setState(() => error = 'Something went wrong. Please try again.');
+      if (mounted) setState(() => error = 'Could not complete this step. Check your details and try again.');
+    }
+    if (mounted) setState(() => busy = false);
+  }
+
+  Future<void> signInWithGoogle() async {
+    setState(() { busy = true; error = null; notice = null; });
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'io.supabase.pixelmagic://login-callback/',
+      );
+    } on AuthException catch (e) {
+      if (mounted) setState(() => error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => error = 'Google sign-in is not configured yet. Please try email login.');
     }
     if (mounted) setState(() => busy = false);
   }
 
   @override
-  void dispose() { email.dispose(); password.dispose(); super.dispose(); }
+  void dispose() { email.dispose(); phone.dispose(); password.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) => Scaffold(body: Center(child: SingleChildScrollView(
@@ -106,18 +159,46 @@ class _LoginScreenState extends State<LoginScreen> {
         const Text('PixelMagic AI', textAlign: TextAlign.center, style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         const Text('Create something amazing', textAlign: TextAlign.center),
-        const SizedBox(height: 32),
-        TextField(controller: email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email')),
-        const SizedBox(height: 14),
+        const SizedBox(height: 28),
+        if (creating) ...[
+          TextField(controller: email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email address')),
+          const SizedBox(height: 12),
+          TextField(controller: phone, keyboardType: TextInputType.phone, maxLength: 10, decoration: const InputDecoration(labelText: 'Mobile number', prefixText: '+91 ', counterText: '')),
+        ] else ...[
+          SegmentedButton<bool>(
+            segments: const [
+              ButtonSegment(value: false, label: Text('Email'), icon: Icon(Icons.email_outlined)),
+              ButtonSegment(value: true, label: Text('Mobile'), icon: Icon(Icons.phone_android)),
+            ],
+            selected: {usePhone},
+            onSelectionChanged: busy ? null : (value) => setState(() { usePhone = value.first; error = null; }),
+          ),
+          const SizedBox(height: 12),
+          if (usePhone)
+            TextField(controller: phone, keyboardType: TextInputType.phone, maxLength: 10, decoration: const InputDecoration(labelText: 'Mobile number', prefixText: '+91 ', counterText: ''))
+          else
+            TextField(controller: email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email address')),
+        ],
+        const SizedBox(height: 12),
         TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'Password')),
         if (error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(error!, style: const TextStyle(color: Colors.redAccent))),
+        if (notice != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(notice!, style: const TextStyle(color: Colors.greenAccent, fontSize: 12))),
         const SizedBox(height: 18),
-        FilledButton(onPressed: busy ? null : submit, child: Text(busy ? 'Please wait…' : creating ? 'Create account' : 'Sign in')),
-        TextButton(onPressed: () => setState(() { creating = !creating; error = null; }), child: Text(creating ? 'Already registered? Sign in' : 'New here? Create account')),
+        FilledButton(onPressed: busy ? null : submit, child: Text(busy ? 'Please wait…' : creating ? 'Register' : 'Login')),
+        if (!creating) ...[
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: busy ? null : signInWithGoogle,
+            icon: const Icon(Icons.g_mobiledata, size: 28),
+            label: const Text('Continue with Google'),
+          ),
+        ],
+        TextButton(onPressed: busy ? null : () => setState(() { creating = !creating; error = null; notice = null; }), child: Text(creating ? 'Already registered? Login' : 'New here? Register')),
+        if (creating)
+          const Padding(padding: EdgeInsets.only(top: 8), child: Text('Register with email, mobile number and password. Phone login becomes available after mobile verification is configured.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 11))),
       ],
     )),
   )));
-
 }
 
 class Feature {

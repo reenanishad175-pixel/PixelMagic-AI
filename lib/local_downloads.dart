@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:video_player/video_player.dart';
 
 class LocalDownload {
   final String path;
@@ -145,6 +146,9 @@ class _LocalDownloadsScreenState extends State<LocalDownloadsScreen> {
               ),
               title: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
               subtitle: Text(DateTime.fromMillisecondsSinceEpoch(item.savedAt).toLocal().toString().substring(0, 16)),
+              onTap: item.mediaType == 'video'
+                  ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocalDownloadedVideoScreen(path: item.path)))
+                  : null,
               trailing: IconButton(
                 tooltip: 'Delete download',
                 icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
@@ -158,5 +162,63 @@ class _LocalDownloadsScreenState extends State<LocalDownloadsScreen> {
         },
       );
     },
+  );
+}
+
+
+class LocalDownloadedVideoScreen extends StatefulWidget {
+  final String path;
+  const LocalDownloadedVideoScreen({super.key, required this.path});
+
+  @override
+  State<LocalDownloadedVideoScreen> createState() => _LocalDownloadedVideoScreenState();
+}
+
+class _LocalDownloadedVideoScreenState extends State<LocalDownloadedVideoScreen> {
+  late final VideoPlayerController _controller;
+  bool _ready = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.file(File(widget.path));
+    _controller.initialize().then((_) {
+      if (mounted) setState(() => _ready = true);
+    }).catchError((Object error) {
+      if (mounted) setState(() => _error = 'This saved video could not be played.');
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Saved video')),
+    body: Center(
+      child: _error != null
+          ? Text(_error!, style: const TextStyle(color: Colors.redAccent))
+          : !_ready
+              ? const CircularProgressIndicator()
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AspectRatio(aspectRatio: _controller.value.aspectRatio, child: VideoPlayer(_controller)),
+                    const SizedBox(height: 14),
+                    IconButton.filled(
+                      onPressed: () => setState(() => _controller.value.isPlaying ? _controller.pause() : _controller.play()),
+                      icon: Icon(_controller.value.isPlaying ? Icons.pause : Icons.play_arrow),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      child: VideoProgressIndicator(_controller, allowScrubbing: true),
+                    ),
+                  ],
+                ),
+    ),
   );
 }

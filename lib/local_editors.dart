@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:gal/gal.dart';
+import 'local_downloads.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 
@@ -78,10 +79,9 @@ class _LocalPhotoEditorScreenState extends State<LocalPhotoEditorScreen> {
       final data = await image.toByteData(format: ui.ImageByteFormat.png);
       image.dispose();
       if (data == null) throw Exception('Could not render image');
-      final file = File(Directory.systemTemp.path + '/pixelmagic_' + DateTime.now().millisecondsSinceEpoch.toString() + '.png');
-      await file.writeAsBytes(data.buffer.asUint8List(), flush: true);
+      final savedPath = await LocalDownloads.saveImageBytes(data.buffer.asUint8List());
       await Gal.requestAccess();
-      await Gal.putImage(file.path);
+      await Gal.putImage(savedPath);
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Edited photo saved to your gallery.')));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not save photo: ' + e.toString())));

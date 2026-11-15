@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'local_editors.dart';
+import 'pro_editors.dart';
 import 'local_downloads.dart';
 import 'local_background_remover.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -397,6 +398,8 @@ const features = [
   Feature('AI Photo', 'Turn a text idea into an image', Icons.auto_awesome, needsPhoto: false),
   Feature('Photo Editing', '20+ filters, preview and save', Icons.tune),
   Feature('Video Editor', 'Trim, music, text, filters and merge', Icons.video_camera_back),
+  Feature('PRO Photo Editor', 'Advanced photo editing studio', Icons.workspace_premium, needsPhoto: false),
+  Feature('PRO Video Editor', 'Professional video production tools', Icons.movie_filter, needsPhoto: false),
   Feature('Background Remover', 'Remove a person’s background offline', Icons.layers_clear),
   Feature('Photo Enhancer', 'Choose a photo to enhance', Icons.hd),
   Feature('Photo to Video', 'Prepare a photo for animation', Icons.movie),
@@ -526,15 +529,59 @@ class _HomeScreenState extends State<HomeScreen> {
             borderRadius: BorderRadius.circular(18),
             child: InkWell(
               borderRadius: BorderRadius.circular(18),
-              onTap: () => Navigator.push(context, MaterialPageRoute(
-                builder: (_) => feature.title == 'Photo Editing' || feature.title == 'Photo Enhancer'
-                    ? const LocalPhotoEditorScreen()
-                    : feature.title == 'Video Editor'
-                        ? const LocalVideoEditorScreen()
-                        : feature.title == 'Background Remover'
-                            ? const BackgroundRemoverScreen()
-                            : FeatureScreen(feature: feature),
-              )),
+              onTap: () async {
+                final isProPhoto = feature.title == 'PRO Photo Editor';
+                final isProVideo = feature.title == 'PRO Video Editor';
+                if (isProPhoto || isProVideo) {
+                  var allowed = false;
+                  try {
+                    final user = Supabase.instance.client.auth.currentUser;
+                    if (user != null) {
+                      final row = await Supabase.instance.client.from('subscriptions')
+                          .select('plan_code,status,current_period_end')
+                          .eq('user_id', user.id)
+                          .order('created_at', ascending: false)
+                          .limit(1).maybeSingle();
+                      final plan = (row?['plan_code'] ?? '').toString().toLowerCase();
+                      final status = (row?['status'] ?? '').toString().toLowerCase();
+                      final end = DateTime.tryParse((row?['current_period_end'] ?? '').toString());
+                      allowed = status == 'active' &&
+                          (plan == 'lifetime' || (plan == 'monthly' && end != null && end.isAfter(DateTime.now().toUtc())));
+                    }
+                  } catch (_) {
+                    allowed = false;
+                  }
+                  if (!context.mounted) return;
+                  if (!allowed) {
+                    await showDialog<void>(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text('PRO subscription required'),
+                        content: const Text('Subscribe to Monthly Pro or Lifetime Pro to unlock the Professional Photo and Video Editors.'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Not now')),
+                          FilledButton(onPressed: () { Navigator.pop(dialogContext); setState(() => selectedTab = 2); },
+                            child: const Text('View subscription')),
+                        ],
+                      ),
+                    );
+                    return;
+                  }
+                  await Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => isProPhoto ? const ProPhotoEditorScreen() : const ProVideoEditorScreen(),
+                  ));
+                  return;
+                }
+                await Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => feature.title == 'Photo Editing' || feature.title == 'Photo Enhancer'
+                      ? const LocalPhotoEditorScreen()
+                      : feature.title == 'Video Editor'
+                          ? const LocalVideoEditorScreen()
+                          : feature.title == 'Background Remover'
+                              ? const BackgroundRemoverScreen()
+                              : FeatureScreen(feature: feature),
+                ));
+              },
               child: Padding(
                 padding: const EdgeInsets.all(15),
                 child: Column(
@@ -547,7 +594,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Icon(feature.icon, color: const Color(0xFF55DCCB), size: 25),
                     ),
                     const Spacer(),
-                    Text(feature.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    Row(children: [Expanded(child: Text(feature.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis)), if (feature.title.startsWith('PRO')) const Text('PRO', style: TextStyle(color: Color(0xFFFFD479), fontSize: 9, fontWeight: FontWeight.w900))]),
                     const SizedBox(height: 4),
                     Text(feature.subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white60, fontSize: 11)),
                   ],

@@ -213,7 +213,7 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
           const _ComingSoonTile(icon: Icons.content_cut, title: 'Trim / Cut', detail: 'Clip selection and export need a local video-rendering engine.'),
           const _ComingSoonTile(icon: Icons.music_note, title: 'Add music', detail: 'Audio mixing and export need a local video-rendering engine.'),
           const _ComingSoonTile(icon: Icons.text_fields, title: 'Text overlay', detail: 'Text overlay export needs the same local rendering engine.'),
-          const _ComingSoonTile(icon: Icons.merge, title: 'Merge videos', detail: 'Joining clips needs local video-rendering support.'),
+          const _ComingSoonTile(icon: Icons.call_merge, title: 'Merge videos', detail: 'Joining clips needs local video-rendering support.'),
         ],
         if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: const TextStyle(color: Colors.redAccent))),
         if (c == null) const Padding(padding: EdgeInsets.only(top: 14), child: Text('Video preview is offline. Editing and export tools will be added after a compatible free on-device rendering engine is included.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 12))),

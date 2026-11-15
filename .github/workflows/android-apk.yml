@@ -26,6 +26,15 @@ jobs:
           cache: true
       - name: Generate Android platform files
         run: flutter create --platforms=android --project-name pixelmagic_ai .
+      - name: Set minimum Android API for local media engines
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/build.gradle.kts")
+          s = p.read_text()
+          s = s.replace("minSdk = flutter.minSdkVersion", "minSdk = 24")
+          p.write_text(s)
+          PY
       - name: Register Android auth deep link
         run: |
           python3 - <<'PY'

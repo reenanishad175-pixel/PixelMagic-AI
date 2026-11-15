@@ -11,13 +11,15 @@ class LocalDownload {
   final String path;
   final String name;
   final int savedAt;
-  const LocalDownload({required this.path, required this.name, required this.savedAt});
+  final String mediaType;
+  const LocalDownload({required this.path, required this.name, required this.savedAt, this.mediaType = 'image'});
 
-  Map<String, dynamic> toJson() => {'path': path, 'name': name, 'savedAt': savedAt};
+  Map<String, dynamic> toJson() => {'path': path, 'name': name, 'savedAt': savedAt, 'mediaType': mediaType};
   factory LocalDownload.fromJson(Map<String, dynamic> json) => LocalDownload(
     path: json['path'] as String,
     name: json['name'] as String,
     savedAt: (json['savedAt'] as num).toInt(),
+    mediaType: json['mediaType'] as String? ?? 'image',
   );
 }
 
@@ -37,12 +39,22 @@ class LocalDownloads {
     final name = 'PixelMagic_${DateTime.now().millisecondsSinceEpoch}.png';
     final file = File('${folder.path}/$name');
     await file.writeAsBytes(bytes, flush: true);
+    await registerFile(file.path, mediaType: 'image');
+    return file.path;
+  }
+
+  static Future<void> registerFile(String path, {required String mediaType}) async {
+    final file = File(path);
+    if (!await file.exists()) throw Exception('Saved media file not found.');
     final prefs = await SharedPreferences.getInstance();
     final items = await list();
-    final updated = [LocalDownload(path: file.path, name: name, savedAt: DateTime.now().millisecondsSinceEpoch), ...items];
+    final name = path.split(Platform.pathSeparator).last;
+    final updated = [
+      LocalDownload(path: path, name: name, savedAt: DateTime.now().millisecondsSinceEpoch, mediaType: mediaType),
+      ...items.where((item) => item.path != path),
+    ];
     await prefs.setString(_key, jsonEncode(updated.map((e) => e.toJson()).toList()));
     changed.value++;
-    return file.path;
   }
 
   static Future<List<LocalDownload>> list() async {
@@ -126,8 +138,10 @@ class _LocalDownloadsScreenState extends State<LocalDownloadsScreen> {
             child: ListTile(
               leading: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.file(File(item.path), width: 54, height: 54, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported)),
+                child: item.mediaType == 'video'
+                    ? Container(width: 54, height: 54, color: const Color(0xFF153E43), child: const Icon(Icons.play_circle_fill, color: Color(0xFF55DCCB)))
+                    : Image.file(File(item.path), width: 54, height: 54, fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported)),
               ),
               title: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
               subtitle: Text(DateTime.fromMillisecondsSinceEpoch(item.savedAt).toLocal().toString().substring(0, 16)),

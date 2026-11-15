@@ -17,7 +17,7 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
   String task = 'image';
   bool busy = false;
   bool saving = false;
-  String? error, imageUrl, stage;
+  String? error, imageUrl, stage, videoUrl;
   VideoPlayerController? video;
 
   Future<Map<String, dynamic>> _call(Map<String, dynamic> body) async {
@@ -31,7 +31,7 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
   }
   Future<void> generate() async {
     if (busy || prompt.text.trim().length < 3) return;
-    setState(() { busy = true; error = null; imageUrl = null; stage = 'Submitting secure AI request…'; });
+    setState(() { busy = true; error = null; imageUrl = null; videoUrl = null; stage = 'Submitting secure AI request…'; });
     await video?.dispose(); video = null;
     try {
       final submitted = await _call({'task': task, 'prompt': prompt.text.trim(), 'action': 'submit'});
@@ -61,7 +61,7 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
         final player = VideoPlayerController.networkUrl(Uri.parse(url));
         await player.initialize();
         if (!mounted) { await player.dispose(); return; }
-        setState(() => video = player);
+        setState(() { video = player; videoUrl = url; });
       }
       if (mounted) setState(() => stage = 'Generation complete');
     } catch (e) {
@@ -71,7 +71,7 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
 
   Future<void> saveResult() async {
     if (saving) return;
-    final url = imageUrl ?? (video?.dataSource);
+    final url = imageUrl ?? videoUrl;
     if (url == null) return;
     setState(() => saving = true);
     try {
@@ -110,7 +110,7 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
       SegmentedButton<String>(segments: const [
         ButtonSegment(value: 'image', label: Text('AI Image'), icon: Icon(Icons.image)),
         ButtonSegment(value: 'video', label: Text('AI Video'), icon: Icon(Icons.movie)),
-      ], selected: {task}, onSelectionChanged: busy ? null : (v) => setState(() { task = v.first; imageUrl = null; video?.dispose(); video = null; })),
+      ], selected: {task}, onSelectionChanged: busy ? null : (v) => setState(() { task = v.first; imageUrl = null; videoUrl = null; video?.dispose(); video = null; })),
       const SizedBox(height: 14),
       TextField(controller: prompt, minLines: 3, maxLines: 6, maxLength: 2000, decoration: InputDecoration(labelText: task == 'image' ? 'Describe the image' : 'Describe the video')),
       FilledButton.icon(onPressed: busy ? null : generate, icon: const Icon(Icons.auto_awesome), label: Text(busy ? 'Generating…' : task == 'image' ? 'Generate image' : 'Generate video')),

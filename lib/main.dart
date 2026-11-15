@@ -227,8 +227,76 @@ const features = [
   Feature('AI Reels', 'Plan a short vertical video', Icons.smart_display, needsPhoto: false),
 ];
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String? mobileNumber;
+  bool checkingMobile = true;
+
+  @override
+  void initState() {
+    super.initState();
+    loadMobile();
+  }
+
+  Future<void> loadMobile() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    try {
+      final row = await Supabase.instance.client.from('profiles')
+          .select('mobile_number').eq('id', user.id).maybeSingle();
+      if (mounted) setState(() {
+        mobileNumber = row?['mobile_number'] as String?;
+        checkingMobile = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => checkingMobile = false);
+    }
+  }
+
+  Future<void> addMobile() async {
+    final controller = TextEditingController();
+    final entered = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Add mobile number'),
+        content: TextField(
+          controller: controller, keyboardType: TextInputType.phone,
+          maxLength: 10, decoration: const InputDecoration(
+            labelText: '10-digit mobile number', prefixText: '+91 ',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, controller.text), child: const Text('Save')),
+        ],
+      ),
+    );
+    final digits = (entered ?? '').replaceAll(RegExp(r'[^0-9]'), '');
+    controller.dispose();
+    if (digits.length != 10) return;
+    final normalized = '+91$digits';
+    try {
+      final user = Supabase.instance.client.auth.currentUser!;
+      await Supabase.instance.client.from('profiles').update({
+        'mobile_number': normalized,
+        'email': user.email,
+        'display_name': user.userMetadata?['full_name'] ?? user.userMetadata?['name'],
+      }).eq('id', user.id);
+      if (mounted) setState(() => mobileNumber = normalized);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mobile number saved. No OTP was sent.')),
+      );
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not save this number. It may already be linked to another account.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -252,6 +320,22 @@ class HomeScreen extends StatelessWidget {
         ]),
       ),
       const SizedBox(height: 16),
+      if (!checkingMobile && mobileNumber == null)
+        Card(
+          color: const Color(0xFF242039),
+          child: ListTile(
+            leading: const Icon(Icons.phone_android, color: Color(0xFFC2AEFF)),
+            title: const Text('Add a mobile number'),
+            subtitle: const Text('You can add it now. No phone OTP is required.'),
+            trailing: TextButton(onPressed: addMobile, child: const Text('Add')),
+          ),
+        ),
+      if (mobileNumber != null)
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.phone_android, color: Color(0xFFC2AEFF)),
+          title: Text('Mobile: $mobileNumber'),
+        ),
       const CreditsPanel(),
       const SizedBox(height: 24),
       const Text('Creative tools', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),

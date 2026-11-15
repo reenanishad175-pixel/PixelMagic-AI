@@ -946,7 +946,7 @@ class _DailyRewardsPanelState extends State<DailyRewardsPanel> {
     final date = latest?['reward_date']?.toString();
     if (date == null) return false;
     final now = DateTime.now();
-    final today = '\${now.year.toString().padLeft(4, '0')}-\${now.month.toString().padLeft(2, '0')}-\${now.day.toString().padLeft(2, '0')}';
+    final today = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     return date == today;
   }
 
@@ -1000,10 +1000,10 @@ class _DailyRewardsPanelState extends State<DailyRewardsPanel> {
                   ? const Color(0xFF55DCCB) : Colors.white10),
             ),
             child: Column(children: [
-              Text('D\${i + 1}', style: const TextStyle(fontSize: 9, color: Colors.white60)),
+              Text('D${i + 1}', style: const TextStyle(fontSize: 9, color: Colors.white60)),
               const SizedBox(height: 4),
               const Icon(Icons.bolt, size: 13, color: Color(0xFFFFD479)),
-              Text('\${rewards[i]}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              Text('${rewards[i]}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
             ]),
           )))),
           const SizedBox(height: 12),
@@ -1064,7 +1064,7 @@ class SubscriptionPanel extends StatelessWidget {
             final end = row['current_period_end']?.toString();
             return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Plan: $plan   •   Status: $status', style: const TextStyle(color: Color(0xFF55DCCB))),
-              if (end != null) Text('Valid until: \${end.split('T').first}',
+              if (end != null) Text('Valid until: ${end.split('T').first}',
                   style: const TextStyle(color: Colors.white60, fontSize: 11)),
             ]);
           },

@@ -148,7 +148,13 @@ class _LocalDownloadsScreenState extends State<LocalDownloadsScreen> {
               subtitle: Text(DateTime.fromMillisecondsSinceEpoch(item.savedAt).toLocal().toString().substring(0, 16)),
               onTap: item.mediaType == 'video'
                   ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocalDownloadedVideoScreen(path: item.path)))
-                  : null,
+                  : () => showDialog<void>(
+                      context: context,
+                      builder: (_) => Dialog(
+                        backgroundColor: const Color(0xFF111F2B),
+                        child: InteractiveViewer(child: Image.file(File(item.path), fit: BoxFit.contain)),
+                      ),
+                    ),
               trailing: IconButton(
                 tooltip: 'Delete download',
                 icon: const Icon(Icons.delete_outline, color: Colors.redAccent),

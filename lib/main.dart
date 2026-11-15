@@ -562,61 +562,149 @@ class _HomeScreenState extends State<HomeScreen> {
     ],
   );
 
-  Widget _profileContent() {
+  Future<void> _editDisplayName() async {
+    final controller = TextEditingController(
+      text: (Supabase.instance.client.auth.currentUser?.userMetadata?['full_name'] ??
+          Supabase.instance.client.auth.currentUser?.userMetadata?['name'] ?? '').toString(),
+    );
+    final value = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Set your name'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(labelText: 'Your name'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, controller.text.trim()), child: const Text('Save')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (value == null || value.trim().isEmpty) return;
+    try {
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser!;
+      await client.auth.updateUser(UserAttributes(data: {
+        ...?user.userMetadata,
+        'full_name': value.trim(),
+      }));
+      await client.from('profiles').upsert({
+        'id': user.id,
+        'email': user.email,
+        'display_name': value.trim(),
+      });
+      if (mounted) setState(() {});
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name updated successfully.')),
+      );
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not update your name. Please try again.')),
+      );
+    }
+  }
+
+  Widget _settingsContent() {
     final user = Supabase.instance.client.auth.currentUser;
-    final displayName = user?.userMetadata?['full_name'] ?? user?.userMetadata?['name'] ?? 'PixelMagic user';
+    final displayName = (user?.userMetadata?['full_name'] ??
+        user?.userMetadata?['name'] ?? 'PixelMagic user').toString();
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       children: [
-        const SizedBox(height: 12),
-        const CircleAvatar(radius: 38, backgroundColor: Color(0xFF153E43), child: Icon(Icons.person, size: 42, color: Color(0xFF55DCCB))),
-        const SizedBox(height: 14),
-        Center(child: Text(displayName.toString(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
-        Center(child: Text(user?.email ?? '', style: const TextStyle(color: Colors.white60))),
-        const SizedBox(height: 28),
-        const Text('Profile details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 10),
+        const Text('Account & Settings', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        const Text('Your profile, credits, rewards and subscription in one place.',
+            style: TextStyle(color: Colors.white60, fontSize: 12)),
+        const SizedBox(height: 18),
         Card(
           color: const Color(0xFF111F2B),
-          child: ListTile(
-            leading: const Icon(Icons.phone_android, color: Color(0xFF55DCCB)),
-            title: const Text('Mobile number'),
-            subtitle: Text(checkingMobile ? 'Loading…' : (mobileNumber ?? 'Not added yet')),
-            trailing: TextButton(
-              onPressed: checkingMobile ? null : addMobile,
-              child: Text(mobileNumber == null ? 'Add' : 'Change'),
-            ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const CircleAvatar(radius: 25, backgroundColor: Color(0xFF153E43),
+                    child: Icon(Icons.person, color: Color(0xFF55DCCB), size: 28)),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(displayName, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                  Text(user?.email ?? 'Email not available',
+                      style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                ])),
+                IconButton(onPressed: _editDisplayName, icon: const Icon(Icons.edit, color: Color(0xFF55DCCB)),
+                    tooltip: 'Edit name'),
+              ]),
+              const Divider(height: 24),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.phone_android, color: Color(0xFF55DCCB)),
+                title: const Text('Mobile number'),
+                subtitle: Text(checkingMobile ? 'Loading…' : (mobileNumber ?? 'Not added yet')),
+                trailing: mobileNumber == null
+                    ? TextButton(onPressed: checkingMobile ? null : addMobile, child: const Text('Add once'))
+                    : const Icon(Icons.verified, color: Colors.greenAccent),
+              ),
+              const Text('Your mobile number can be added once and cannot be changed later.',
+                  style: TextStyle(color: Colors.white38, fontSize: 10)),
+            ]),
           ),
         ),
         const SizedBox(height: 14),
         const CreditsPanel(),
+        const SizedBox(height: 14),
+        const DailyRewardsPanel(),
+        const SizedBox(height: 14),
+        const SubscriptionPanel(),
+        const SizedBox(height: 14),
+        Card(
+          color: const Color(0xFF111F2B),
+          child: ListTile(
+            leading: const Icon(Icons.lock_reset, color: Color(0xFF55DCCB)),
+            title: const Text('Change password'),
+            subtitle: const Text('Update your account password securely'),
+            onTap: () => showDialog<void>(
+              context: context,
+              builder: (_) => const PasswordChangeDialog(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Card(
+          color: const Color(0xFF24191E),
+          child: ListTile(
+            leading: const Icon(Icons.logout, color: Colors.redAccent),
+            title: const Text('Log out'),
+            subtitle: const Text('Sign out from this PixelMagic AI account'),
+            onTap: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('Log out?'),
+                  content: const Text('Are you sure you want to sign out?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+                    FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Log out')),
+                  ],
+                ),
+              );
+              if (confirm == true) await Supabase.instance.client.auth.signOut();
+            },
+          ),
+        ),
+        const SizedBox(height: 18),
       ],
     );
   }
 
   Widget _downloadsContent() => const LocalDownloadsScreen();
 
-  Widget _settingsContent() => ListView(
-    padding: const EdgeInsets.all(20),
-    children: [
-      const Text('Settings', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-      const SizedBox(height: 14),
-      Card(
-        color: const Color(0xFF111F2B),
-        child: ListTile(
-          leading: const Icon(Icons.logout, color: Color(0xFF55DCCB)),
-          title: const Text('Sign out'),
-          subtitle: const Text('Sign out of your PixelMagic account'),
-          onTap: () => Supabase.instance.client.auth.signOut(),
-        ),
-      ),
-    ],
-  );
-
   @override
   Widget build(BuildContext context) {
-    final titles = ['PixelMagic AI', 'Downloads', 'Profile', 'Settings'];
-    final pages = [_homeContent(), _downloadsContent(), _profileContent(), _settingsContent()];
+    final titles = ['PixelMagic AI', 'Downloads', 'Account & Settings'];
+    final pages = [_homeContent(), _downloadsContent(), _settingsContent()];
     return Scaffold(
       appBar: AppBar(
         title: Row(children: [
@@ -632,8 +720,7 @@ class _HomeScreenState extends State<HomeScreen> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
           NavigationDestination(icon: Icon(Icons.download_outlined), selectedIcon: Icon(Icons.download), label: 'Downloads'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Settings'),
+          NavigationDestination(icon: Icon(Icons.manage_accounts_outlined), selectedIcon: Icon(Icons.manage_accounts), label: 'Account'),
         ],
       ),
     );
@@ -753,6 +840,257 @@ class _FeatureScreenState extends State<FeatureScreen> {
   }
 }
 
+
+class PasswordChangeDialog extends StatefulWidget {
+  const PasswordChangeDialog({super.key});
+
+  @override
+  State<PasswordChangeDialog> createState() => _PasswordChangeDialogState();
+}
+
+class _PasswordChangeDialogState extends State<PasswordChangeDialog> {
+  final current = TextEditingController();
+  final next = TextEditingController();
+  final confirm = TextEditingController();
+  bool busy = false;
+  String? error;
+
+  Future<void> save() async {
+    if (next.text.length < 6 || next.text != confirm.text) {
+      setState(() => error = next.text.length < 6
+          ? 'New password must be at least 6 characters.'
+          : 'New passwords do not match.');
+      return;
+    }
+    setState(() { busy = true; error = null; });
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: next.text, currentPassword: current.text),
+      );
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password changed successfully.')),
+      );
+    } on AuthException catch (e) {
+      if (mounted) setState(() => error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => error = 'Could not change password. Check your current password and try again.');
+    }
+    if (mounted) setState(() => busy = false);
+  }
+
+  @override
+  void dispose() {
+    current.dispose(); next.dispose(); confirm.dispose(); super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Change password'),
+    content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+      TextField(controller: current, obscureText: true,
+          decoration: const InputDecoration(labelText: 'Current password')),
+      const SizedBox(height: 10),
+      TextField(controller: next, obscureText: true,
+          decoration: const InputDecoration(labelText: 'New password')),
+      const SizedBox(height: 10),
+      TextField(controller: confirm, obscureText: true,
+          decoration: const InputDecoration(labelText: 'Confirm new password')),
+      if (error != null) Padding(padding: const EdgeInsets.only(top: 10),
+          child: Text(error!, style: const TextStyle(color: Colors.redAccent, fontSize: 12))),
+    ])),
+    actions: [
+      TextButton(onPressed: busy ? null : () => Navigator.pop(context), child: const Text('Cancel')),
+      FilledButton(onPressed: busy ? null : save, child: Text(busy ? 'Saving…' : 'Update')),
+    ],
+  );
+}
+
+class DailyRewardsPanel extends StatefulWidget {
+  const DailyRewardsPanel({super.key});
+
+  @override
+  State<DailyRewardsPanel> createState() => _DailyRewardsPanelState();
+}
+
+class _DailyRewardsPanelState extends State<DailyRewardsPanel> {
+  static const rewards = [1, 3, 5, 7, 10, 15, 20];
+  bool busy = false;
+  Map<String, dynamic>? latest;
+  String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    loadStatus();
+  }
+
+  Future<void> loadStatus() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+      final row = await Supabase.instance.client.from('daily_checkins')
+          .select('reward_date,cycle_day,credits_awarded')
+          .eq('user_id', user.id)
+          .order('reward_date', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      if (mounted) setState(() => latest = row);
+    } catch (_) {
+      if (mounted) setState(() => error = 'Could not load daily rewards.');
+    }
+  }
+
+  bool get claimedToday {
+    final date = latest?['reward_date']?.toString();
+    if (date == null) return false;
+    final now = DateTime.now();
+    final today = '\${now.year.toString().padLeft(4, '0')}-\${now.month.toString().padLeft(2, '0')}-\${now.day.toString().padLeft(2, '0')}';
+    return date == today;
+  }
+
+  Future<void> claim() async {
+    setState(() { busy = true; error = null; });
+    try {
+      final result = await Supabase.instance.client.rpc('claim_daily_reward');
+      await loadStatus();
+      final data = Map<String, dynamic>.from(result as Map);
+      if (!mounted) return;
+      final added = (data['credits_added'] as num?)?.toInt() ?? 0;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(data['claimed'] == true
+            ? 'You earned $added credits! Keep your 7-day streak going.'
+            : 'Today’s reward has already been claimed.'),
+      ));
+    } catch (_) {
+      if (mounted) setState(() => error = 'Reward could not be claimed. Please try again.');
+    }
+    if (mounted) setState(() => busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final nextDay = claimedToday
+        ? (((latest?['cycle_day'] as num?)?.toInt() ?? 0) >= 7
+            ? 1 : ((latest?['cycle_day'] as num?)?.toInt() ?? 0) + 1)
+        : latest == null ? 1 : (((latest?['cycle_day'] as num?)?.toInt() ?? 0) >= 7
+            ? 1 : ((latest?['cycle_day'] as num?)?.toInt() ?? 0) + 1);
+    return Card(
+      color: const Color(0xFF111F2B),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const Icon(Icons.calendar_month, color: Color(0xFFFFD479)),
+            const SizedBox(width: 8),
+            const Expanded(child: Text('7-day daily check-in', style: TextStyle(fontWeight: FontWeight.bold))),
+            Text(claimedToday ? 'Claimed today' : 'Day $nextDay next',
+                style: const TextStyle(color: Color(0xFF55DCCB), fontSize: 11)),
+          ]),
+          const SizedBox(height: 12),
+          Row(children: List.generate(7, (i) => Expanded(child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 2),
+            padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
+            decoration: BoxDecoration(
+              color: (latest?['cycle_day'] as num? ?? 0) >= i + 1
+                  ? const Color(0xFF174A45) : const Color(0xFF1A2632),
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: i + 1 == nextDay
+                  ? const Color(0xFF55DCCB) : Colors.white10),
+            ),
+            child: Column(children: [
+              Text('D\${i + 1}', style: const TextStyle(fontSize: 9, color: Colors.white60)),
+              const SizedBox(height: 4),
+              const Icon(Icons.bolt, size: 13, color: Color(0xFFFFD479)),
+              Text('\${rewards[i]}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            ]),
+          )))),
+          const SizedBox(height: 12),
+          SizedBox(width: double.infinity, child: FilledButton.icon(
+            onPressed: busy || claimedToday ? null : claim,
+            icon: Icon(claimedToday ? Icons.check_circle : Icons.card_giftcard),
+            label: Text(busy ? 'Claiming…' : claimedToday ? 'Come back tomorrow' : 'Claim today’s free credits'),
+          )),
+          if (error != null) Padding(padding: const EdgeInsets.only(top: 8),
+              child: Text(error!, style: const TextStyle(color: Colors.redAccent, fontSize: 11))),
+          const Text('Miss a day? Your 7-day cycle starts again from Day 1. Ad rewards will be added after the ad service is connected.',
+              style: TextStyle(color: Colors.white38, fontSize: 10)),
+        ]),
+      ),
+    );
+  }
+}
+
+class SubscriptionPanel extends StatelessWidget {
+  const SubscriptionPanel({super.key});
+
+  Future<Map<String, dynamic>?> loadSubscription() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return null;
+    return Supabase.instance.client.from('subscriptions')
+        .select('plan_code,status,current_period_end,created_at')
+        .eq('user_id', user.id)
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+  }
+
+  @override
+  Widget build(BuildContext context) => Card(
+    color: const Color(0xFF111F2B),
+    child: Padding(
+      padding: const EdgeInsets.all(14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Row(children: [
+          Icon(Icons.workspace_premium, color: Color(0xFFFFD479)),
+          SizedBox(width: 8),
+          Text('Subscription', style: TextStyle(fontWeight: FontWeight.bold)),
+        ]),
+        const SizedBox(height: 10),
+        FutureBuilder<Map<String, dynamic>?>(
+          future: loadSubscription(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Padding(padding: EdgeInsets.all(8), child: LinearProgressIndicator());
+            }
+            final row = snapshot.data;
+            if (row == null) {
+              return const Text('Current plan: Free. Choose a plan below when payment is enabled.',
+                  style: TextStyle(color: Colors.white70, fontSize: 12));
+            }
+            final plan = (row['plan_code'] ?? 'free').toString().toUpperCase();
+            final status = (row['status'] ?? 'pending').toString().toUpperCase();
+            final end = row['current_period_end']?.toString();
+            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Plan: $plan   •   Status: $status', style: const TextStyle(color: Color(0xFF55DCCB))),
+              if (end != null) Text('Valid until: \${end.split('T').first}',
+                  style: const TextStyle(color: Colors.white60, fontSize: 11)),
+            ]);
+          },
+        ),
+        const Divider(height: 22),
+        const Text('Available plans', style: TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        _planRow('Monthly', 'monthly', '30 days'),
+        _planRow('Yearly', 'yearly', '365 days'),
+        _planRow('Lifetime', 'lifetime', 'One-time access'),
+        const SizedBox(height: 8),
+        const Text('Plan prices and secure payment activation are pending payment-gateway setup. No payment will be taken until the final price and gateway are configured.',
+            style: TextStyle(color: Colors.white38, fontSize: 10)),
+      ]),
+    ),
+  );
+
+  Widget _planRow(String name, String code, String duration) => ListTile(
+    dense: true,
+    contentPadding: EdgeInsets.zero,
+    leading: const Icon(Icons.verified_outlined, color: Color(0xFF55DCCB)),
+    title: Text(name),
+    subtitle: Text(duration),
+    trailing: const Text('Price pending', style: TextStyle(color: Colors.white54, fontSize: 10)),
+  );
+}
 
 class CreditsPanel extends StatelessWidget {
   const CreditsPanel({super.key});

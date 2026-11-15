@@ -20,6 +20,7 @@ class LocalDownload {
 }
 
 class LocalDownloads {
+  static final ValueNotifier<int> changed = ValueNotifier<int>(0);
   static const _key = 'pixelmagic_local_downloads_v1';
 
   static Future<Directory> _folder() async {
@@ -38,6 +39,7 @@ class LocalDownloads {
     final items = await list();
     final updated = [LocalDownload(path: file.path, name: name, savedAt: DateTime.now().millisecondsSinceEpoch), ...items];
     await prefs.setString(_key, jsonEncode(updated.map((e) => e.toJson()).toList()));
+    changed.value++;
     return file.path;
   }
 
@@ -64,6 +66,7 @@ class LocalDownloads {
     final prefs = await SharedPreferences.getInstance();
     final remaining = (await list()).where((e) => e.path != item.path).toList();
     await prefs.setString(_key, jsonEncode(remaining.map((e) => e.toJson()).toList()));
+    changed.value++;
   }
 }
 
@@ -80,6 +83,13 @@ class _LocalDownloadsScreenState extends State<LocalDownloadsScreen> {
   void initState() {
     super.initState();
     _items = LocalDownloads.list();
+    LocalDownloads.changed.addListener(_refresh);
+  }
+
+  @override
+  void dispose() {
+    LocalDownloads.changed.removeListener(_refresh);
+    super.dispose();
   }
 
   void _refresh() => setState(() => _items = LocalDownloads.list());

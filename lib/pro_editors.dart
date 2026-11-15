@@ -219,7 +219,7 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
     final c=controller; final duration=c?.value.duration??Duration.zero; final max=duration.inMilliseconds/1000;
     return Scaffold(appBar:AppBar(title:const Text('Professional Video Editor  •  PRO')),body:ListView(padding:const EdgeInsets.all(16),children:[
       if(c==null) ...[
-        InkWell(onTap:busy?null:choose,child:Container(height:220,decoration:BoxDecoration(color:_panel,borderRadius:BorderRadius.circular(18),border:Border.all(color:_gold)),child:const Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(Icons.video_library,size:54,color:_gold),SizedBox(height:10),Text('Choose a video for PRO editing')])),
+        InkWell(onTap:busy?null:choose,child:Container(height:220,decoration:BoxDecoration(color:_panel,borderRadius:BorderRadius.circular(18),border:Border.all(color:_gold)),child:const Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(Icons.video_library,size:54,color:_gold),SizedBox(height:10),Text('Choose a video for PRO editing')]))),
         if(hasSavedProject) OutlinedButton.icon(onPressed:busy?null:_resumeProject,icon:const Icon(Icons.restore),label:const Text('Resume saved project')),
       ] else ...[
         ClipRRect(borderRadius:BorderRadius.circular(14),child:AspectRatio(aspectRatio:c.value.aspectRatio,child:VideoPlayer(c))),

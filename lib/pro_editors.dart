@@ -28,7 +28,7 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
   final previewKey = GlobalKey();
   XFile? photo;
   double brightness = 0, contrast = 1, saturation = 1, warmth = 0;
-  double rotation = 0, zoom = 1, frameWidth = 0, redMix = 1, greenMix = 1, blueMix = 1, blur = 0;
+  double rotation = 0, zoom = 1, frameWidth = 0, redMix = 1, greenMix = 1, blueMix = 1, blur = 0, cropAspect = .8;
   bool flip = false, original = false, saving = false;
   String preset = 'Original';
   String overlayText = '';
@@ -60,6 +60,47 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
       if (p=='Moody') { contrast=1.24; saturation=.72; brightness=-.07; }
     });
   }
+
+  Future<void> saveCustomPreset() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('pixelmagic_photo_custom_preset', jsonEncode({
+      'brightness': brightness, 'contrast': contrast, 'saturation': saturation,
+      'warmth': warmth, 'red': redMix, 'green': greenMix, 'blue': blueMix,
+      'zoom': zoom, 'blur': blur, 'frame': frameWidth, 'rotation': rotation,
+      'flip': flip, 'text': overlayText, 'aspect': cropAspect,
+    }));
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Custom photo preset saved on this device.')));
+  }
+
+  Future<void> applyCustomPreset() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('pixelmagic_photo_custom_preset');
+    if (raw == null) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No custom preset saved yet.')));
+      return;
+    }
+    final data = jsonDecode(raw) as Map<String, dynamic>;
+    if (!mounted) return;
+    setState(() {
+      brightness = (data['brightness'] as num).toDouble();
+      contrast = (data['contrast'] as num).toDouble();
+      saturation = (data['saturation'] as num).toDouble();
+      warmth = (data['warmth'] as num).toDouble();
+      redMix = (data['red'] as num).toDouble();
+      greenMix = (data['green'] as num).toDouble();
+      blueMix = (data['blue'] as num).toDouble();
+      zoom = (data['zoom'] as num).toDouble();
+      blur = (data['blur'] as num).toDouble();
+      frameWidth = (data['frame'] as num).toDouble();
+      rotation = (data['rotation'] as num).toDouble();
+      flip = data['flip'] as bool;
+      overlayText = data['text'] as String;
+      cropAspect = (data['aspect'] as num).toDouble();
+      preset = 'Custom';
+      original = false;
+    });
+  }
+
   Future<void> save() async {
     if (photo==null || saving) return;
     setState(()=>saving=true);
@@ -87,7 +128,7 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
       FilledButton.icon(onPressed:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const PixelMagicAiStudio())),icon:const Icon(Icons.auto_awesome),label:const Text('Open AI Image & Video Generator')),
       if(photo==null) InkWell(onTap:choose,child:Container(height:230,decoration:BoxDecoration(color:_panel,borderRadius:BorderRadius.circular(18),border:Border.all(color:_gold)),child:const Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(Icons.add_photo_alternate,size:54,color:_gold),SizedBox(height:10),Text('Choose a photo to edit')])))
       else ...[
-        RepaintBoundary(key:previewKey,child:AspectRatio(aspectRatio:4/5,child:ClipRRect(borderRadius:BorderRadius.circular(16),child:ColoredBox(color:_panel,child:Stack(fit:StackFit.expand,children:[original?Image.file(File(photo!.path),fit:BoxFit.contain):Transform.rotate(angle:rotation,child:Transform(alignment:Alignment.center,transform:Matrix4.identity()..scale((flip?-1.0:1.0)*zoom,zoom),child:ColorFiltered(colorFilter:ColorFilter.matrix(matrix),child:ImageFiltered(imageFilter:ui.ImageFilter.blur(sigmaX:blur,sigmaY:blur),child:Image.file(File(photo!.path),fit:BoxFit.contain))))),if(overlayText.isNotEmpty) Center(child:Container(padding:const EdgeInsets.symmetric(horizontal:12,vertical:6),color:Colors.black45,child:Text(overlayText,style:const TextStyle(color:Colors.white,fontSize:22,fontWeight:FontWeight.bold)))),if(frameWidth>0) DecoratedBox(decoration:BoxDecoration(border:Border.all(color:Colors.white,width:frameWidth*4))) ]))))),
+        RepaintBoundary(key:previewKey,child:AspectRatio(aspectRatio:cropAspect,child:ClipRRect(borderRadius:BorderRadius.circular(16),child:ColoredBox(color:_panel,child:Stack(fit:StackFit.expand,children:[original?Image.file(File(photo!.path),fit:BoxFit.cover):Transform.rotate(angle:rotation,child:Transform(alignment:Alignment.center,transform:Matrix4.identity()..scale((flip?-1.0:1.0)*zoom,zoom),child:ColorFiltered(colorFilter:ColorFilter.matrix(matrix),child:ImageFiltered(imageFilter:ui.ImageFilter.blur(sigmaX:blur,sigmaY:blur),child:Image.file(File(photo!.path),fit:BoxFit.contain))))),if(overlayText.isNotEmpty) Center(child:Container(padding:const EdgeInsets.symmetric(horizontal:12,vertical:6),color:Colors.black45,child:Text(overlayText,style:const TextStyle(color:Colors.white,fontSize:22,fontWeight:FontWeight.bold)))),if(frameWidth>0) DecoratedBox(decoration:BoxDecoration(border:Border.all(color:Colors.white,width:frameWidth*4))) ]))))),
         Row(children:[Expanded(child:Text('Preset: '+preset)),TextButton.icon(onPressed:()=>setState(()=>original=!original),icon:const Icon(Icons.compare),label:Text(original?'Show edit':'Before / After'))]),
         control('Brightness / Exposure',brightness,-.5,.5,(v)=>brightness=v),
         control('Contrast',contrast,.5,1.8,(v)=>contrast=v),
@@ -102,8 +143,23 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
         const SizedBox(height:6),
         const Text('Professional presets',style:TextStyle(fontWeight:FontWeight.bold)),
         Wrap(spacing:7,children:['Original','Cinematic','Vivid','Warm','Cool','Matte','B&W','Moody'].map((p)=>ChoiceChip(label:Text(p),selected:preset==p,onSelected:(_)=>setPreset(p))).toList()),
+        Wrap(spacing:8,children:[
+          OutlinedButton.icon(onPressed:saveCustomPreset,icon:const Icon(Icons.bookmark_add),label:const Text('Save custom preset')),
+          OutlinedButton.icon(onPressed:applyCustomPreset,icon:const Icon(Icons.bookmark),label:const Text('Apply saved preset')),
+        ]),
         const SizedBox(height:16),
         const Text('02 · Composition & Crop',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
+        DropdownButton<double>(
+          value: cropAspect,
+          isExpanded: true,
+          items: const [
+            DropdownMenuItem(value: 1, child: Text('Square · 1:1')),
+            DropdownMenuItem(value: .8, child: Text('Portrait · 4:5')),
+            DropdownMenuItem(value: .75, child: Text('Portrait · 3:4')),
+            DropdownMenuItem(value: 1.7777777778, child: Text('Landscape · 16:9')),
+          ],
+          onChanged: (v) => setState(() { cropAspect = v ?? .8; preset = 'Custom'; }),
+        ),
         control('Crop / Zoom',zoom,1,2.5,(v)=>zoom=v),
         control('Lens blur',blur,0,8,(v)=>blur=v),
         const SizedBox(height:10),

@@ -20,8 +20,6 @@ dependencies:
   image: ^4.5.4
   google_mlkit_selfie_segmentation: ^1.0.2
   ffmpeg_kit_flutter_new_video: ^2.5.8
-  google_mobile_ads: ^5.3.1
-
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -76,8 +76,8 @@ jobs:
           for root in roots:
               for p in root.glob("file_picker-*/android/build.gradle*"):
                   s = p.read_text()
-                  updated, count = re.subn(r"compileSdkVersion\\s+\\(?\\s*\\d+\\s*\\)?", "compileSdkVersion 36", s)
-                  updated, count2 = re.subn(r"compileSdk\\s*=\\s*\\d+", "compileSdk = 36", updated)
+                  updated, count = re.subn(r"compileSdkVersion\s+\(?\s*\d+\s*\)?", "compileSdkVersion 36", s)
+                  updated, count2 = re.subn(r"compileSdk\s*=\s*\d+", "compileSdk = 36", updated)
                   if count + count2:
                       p.write_text(updated)
                       patched.append(str(p))

@@ -162,6 +162,8 @@ class HomeScreen extends StatelessWidget {
           Text('Pick a tool and start with a photo or a prompt.', style: TextStyle(color: Colors.white70)),
         ]),
       ),
+      const SizedBox(height: 16),
+      const CreditsPanel(),
       const SizedBox(height: 24),
       const Text('Creative tools', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
       const SizedBox(height: 12),
@@ -263,4 +265,42 @@ class _FeatureScreenState extends State<FeatureScreen> {
       ]),
     );
   }
+}
+
+
+class CreditsPanel extends StatelessWidget {
+  const CreditsPanel({super.key});
+
+  Future<int?> loadCredits() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return null;
+    final row = await Supabase.instance.client
+        .from('user_credits')
+        .select('balance')
+        .eq('user_id', user.id)
+        .maybeSingle();
+    return row == null ? 0 : (row['balance'] as num).toInt();
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<int?>(
+    future: loadCredits(),
+    builder: (context, snapshot) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF171A29),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF39314F)),
+      ),
+      child: Row(children: [
+        const Icon(Icons.bolt, color: Color(0xFFFFD479), size: 25),
+        const SizedBox(width: 10),
+        const Expanded(child: Text('Your credits', style: TextStyle(fontWeight: FontWeight.w600))),
+        Text(
+          snapshot.hasError ? '—' : snapshot.hasData ? '${snapshot.data ?? 0}' : '…',
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFC2AEFF)),
+        ),
+      ]),
+    ),
+  );
 }

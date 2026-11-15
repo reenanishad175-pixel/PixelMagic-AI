@@ -368,6 +368,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String? mobileNumber;
   bool checkingMobile = true;
+  int selectedTab = 0;
 
   @override
   void initState() {
@@ -377,7 +378,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> loadMobile() async {
     final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      if (mounted) setState(() => checkingMobile = false);
+      return;
+    }
     try {
       final row = await Supabase.instance.client.from('profiles')
           .select('mobile_number').eq('id', user.id).maybeSingle();
@@ -398,19 +402,27 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (_) => const AddMobileDialog(),
     );
     final digits = (entered ?? '').replaceAll(RegExp(r'[^0-9]'), '');
-    if (digits.length != 10) return;
+    if (digits.length != 10) {
+      if (entered != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a valid 10-digit mobile number.')),
+        );
+      }
+      return;
+    }
     final normalized = '+91$digits';
     try {
       final user = Supabase.instance.client.auth.currentUser!;
-      await Supabase.instance.client.from('profiles').update({
+      await Supabase.instance.client.from('profiles').upsert({
+        'id': user.id,
         'mobile_number': normalized,
         'email': user.email,
         'display_name': user.userMetadata?['full_name'] ?? user.userMetadata?['name'],
-      }).eq('id', user.id);
+      });
       if (mounted) setState(() => mobileNumber = normalized);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Mobile number saved. No OTP was sent.')),
+          const SnackBar(content: Text('Mobile number saved.')),
         );
       }
     } on PostgrestException catch (e) {
@@ -427,51 +439,39 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: const Row(children: [Icon(Icons.auto_awesome, color: Color(0xFFB69CFF)), SizedBox(width: 9), Text('PixelMagic AI', style: TextStyle(fontWeight: FontWeight.bold))]),
-      actions: [IconButton(tooltip: 'Sign out', onPressed: () => Supabase.instance.client.auth.signOut(), icon: const Icon(Icons.logout))],
-    ),
-    body: ListView(padding: const EdgeInsets.fromLTRB(18, 12, 18, 28), children: [
+  Widget _homeContent() => ListView(
+    padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
+    children: [
       Container(
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
-          gradient: const LinearGradient(colors: [Color(0xFF49377D), Color(0xFF20223D)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF49377D), Color(0xFF20223D)],
+            begin: Alignment.topLeft, end: Alignment.bottomRight,
+          ),
         ),
         child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('YOUR CREATIVE STUDIO', style: TextStyle(letterSpacing: 1.4, fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFD5C9FF))),
           SizedBox(height: 10),
-          Text('Make your ideas\nlook magical.', style: TextStyle(fontSize: 27, height: 1.18, fontWeight: FontWeight.bold)),
+          Text('Make your ideas\\nlook magical.', style: TextStyle(fontSize: 27, height: 1.18, fontWeight: FontWeight.bold)),
           SizedBox(height: 8),
           Text('Pick a tool and start with a photo or a prompt.', style: TextStyle(color: Colors.white70)),
         ]),
       ),
-      const SizedBox(height: 16),
-      if (!checkingMobile && mobileNumber == null)
-        Card(
-          color: const Color(0xFF242039),
-          child: ListTile(
-            leading: const Icon(Icons.phone_android, color: Color(0xFFC2AEFF)),
-            title: const Text('Add a mobile number'),
-            subtitle: const Text('You can add it now. No phone OTP is required.'),
-            trailing: TextButton(onPressed: addMobile, child: const Text('Add')),
-          ),
-        ),
-      if (mobileNumber != null)
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.phone_android, color: Color(0xFFC2AEFF)),
-          title: Text('Mobile: $mobileNumber'),
-        ),
+      const SizedBox(height: 22),
       const CreditsPanel(),
       const SizedBox(height: 24),
       const Text('Creative tools', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
       const SizedBox(height: 12),
       GridView.builder(
-        shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-        itemCount: features.length, gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.08),
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: features.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12,
+          childAspectRatio: 1.08,
+        ),
         itemBuilder: (context, index) {
           final feature = features[index];
           return Material(
@@ -479,22 +479,124 @@ class _HomeScreenState extends State<HomeScreen> {
             borderRadius: BorderRadius.circular(18),
             child: InkWell(
               borderRadius: BorderRadius.circular(18),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FeatureScreen(feature: feature))),
-              child: Padding(padding: const EdgeInsets.all(15), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-                Container(width: 45, height: 45, decoration: BoxDecoration(color: const Color(0xFF30274E), borderRadius: BorderRadius.circular(14)), child: Icon(feature.icon, color: const Color(0xFFC2AEFF), size: 25)),
-                const Spacer(),
-                Text(feature.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                const SizedBox(height: 4),
-                Text(feature.subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white60, fontSize: 11)),
-              ])),
+              onTap: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => FeatureScreen(feature: feature),
+              )),
+              child: Padding(
+                padding: const EdgeInsets.all(15),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 45, height: 45,
+                      decoration: BoxDecoration(color: const Color(0xFF30274E), borderRadius: BorderRadius.circular(14)),
+                      child: Icon(feature.icon, color: const Color(0xFFC2AEFF), size: 25),
+                    ),
+                    const Spacer(),
+                    Text(feature.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text(feature.subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                  ],
+                ),
+              ),
             ),
           );
         },
       ),
       const SizedBox(height: 18),
       const Center(child: Text('More creative features are being added.', style: TextStyle(color: Colors.white38, fontSize: 11))),
-    ]),
+    ],
   );
+
+  Widget _profileContent() {
+    final user = Supabase.instance.client.auth.currentUser;
+    final displayName = user?.userMetadata?['full_name'] ?? user?.userMetadata?['name'] ?? 'PixelMagic user';
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        const SizedBox(height: 12),
+        const CircleAvatar(radius: 38, backgroundColor: Color(0xFF30274E), child: Icon(Icons.person, size: 42, color: Color(0xFFC2AEFF))),
+        const SizedBox(height: 14),
+        Center(child: Text(displayName.toString(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
+        Center(child: Text(user?.email ?? '', style: const TextStyle(color: Colors.white60))),
+        const SizedBox(height: 28),
+        const Text('Profile details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 10),
+        Card(
+          color: const Color(0xFF171A29),
+          child: ListTile(
+            leading: const Icon(Icons.phone_android, color: Color(0xFFC2AEFF)),
+            title: const Text('Mobile number'),
+            subtitle: Text(checkingMobile ? 'Loading…' : (mobileNumber ?? 'Not added yet')),
+            trailing: TextButton(
+              onPressed: checkingMobile ? null : addMobile,
+              child: Text(mobileNumber == null ? 'Add' : 'Change'),
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        const CreditsPanel(),
+      ],
+    );
+  }
+
+  Widget _downloadsContent() => ListView(
+    padding: const EdgeInsets.all(20),
+    children: const [
+      SizedBox(height: 18),
+      Icon(Icons.download_for_offline_outlined, size: 64, color: Color(0xFFC2AEFF)),
+      SizedBox(height: 16),
+      Center(child: Text('Your downloads', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold))),
+      SizedBox(height: 8),
+      Center(child: Text('Videos and edited files you export will appear here.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white60))),
+      SizedBox(height: 18),
+      Center(child: Text('No downloads yet', style: TextStyle(color: Colors.white38))),
+    ],
+  );
+
+  Widget _settingsContent() => ListView(
+    padding: const EdgeInsets.all(20),
+    children: [
+      const Text('Settings', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 14),
+      Card(
+        color: const Color(0xFF171A29),
+        child: ListTile(
+          leading: const Icon(Icons.logout, color: Color(0xFFC2AEFF)),
+          title: const Text('Sign out'),
+          subtitle: const Text('Sign out of your PixelMagic account'),
+          onTap: () => Supabase.instance.client.auth.signOut(),
+        ),
+      ),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final titles = ['PixelMagic AI', 'Downloads', 'Profile', 'Settings'];
+    final pages = [_homeContent(), _downloadsContent(), _profileContent(), _settingsContent()];
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(children: [
+          const Icon(Icons.auto_awesome, color: Color(0xFFB69CFF)),
+          const SizedBox(width: 9),
+          Text(titles[selectedTab], style: const TextStyle(fontWeight: FontWeight.bold)),
+        ]),
+      ),
+      body: SafeArea(child: IndexedStack(index: selectedTab, children: pages)),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: selectedTab,
+        onDestinationSelected: (index) => setState(() => selectedTab = index),
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+          NavigationDestination(icon: Icon(Icons.download_outlined), selectedIcon: Icon(Icons.download), label: 'Downloads'),
+          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
+          NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Settings'),
+        ],
+      ),
+    );
+  }
 }
 
 class AddMobileDialog extends StatefulWidget {

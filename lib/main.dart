@@ -597,14 +597,18 @@ class _HomeScreenState extends State<HomeScreen> {
         'email': user.email,
         'display_name': value.trim(),
       });
-      if (mounted) setState(() {});
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Name updated successfully.')),
-      );
+      if (mounted) {
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Name updated successfully.')),
+        );
+      }
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not update your name. Please try again.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not update your name. Please try again.')),
+        );
+      }
     }
   }
 

@@ -272,7 +272,7 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
   bool busy=false;
   String? status,error;
   double start=0,end=0,speed=1,volume=1,gradeBrightness=0,gradeContrast=1,gradeSaturation=1,cropFraction=.85;
-  int exportHeight=1080;
+  int exportHeight=1080, exportFps=30, exportBitrate=8;
   String filter='Original';
   bool hasSavedProject=false;
   @override
@@ -287,7 +287,7 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
     await prefs.setString('pixelmagic_pro_video_project',jsonEncode({
       'path':c.dataSource,'start':start,'end':end,'speed':speed,'volume':volume,
       'brightness':gradeBrightness,'contrast':gradeContrast,'saturation':gradeSaturation,
-      'crop':cropFraction,'filter':filter,'exportHeight':exportHeight,
+      'crop':cropFraction,'filter':filter,'exportHeight':exportHeight,'exportFps':exportFps,'exportBitrate':exportBitrate,
     }));
     if(mounted){setState(()=>hasSavedProject=true);ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('PRO editing project saved on this device.')));}
   }
@@ -310,6 +310,8 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
         cropFraction=(data['crop'] as num?)?.toDouble()??.85;
         filter=(data['filter'] as String?)??'Original';
         exportHeight=(data['exportHeight'] as int?)??1080;
+        exportFps=(data['exportFps'] as int?)??30;
+        exportBitrate=(data['exportBitrate'] as int?)??8;
       });
     }catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not restore saved project.')));}
   }
@@ -333,7 +335,7 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
     final path=p?.files.single.path;
     if(path!=null&&mounted)setState(()=>backgroundPath=path);
   }
-  Future<void> music() async {final p=await FilePicker.platform.pickFiles(type:FileType.audio);final path=p?.files.single.path;if(path!=null)await run((v)=>LocalVideoEngine.addMusic(input:v,audio:path),'Music added and exported.');}
+  Future<void> music({bool mix=false}) async {final p=await FilePicker.platform.pickFiles(type:FileType.audio);final path=p?.files.single.path;if(path!=null)await run((v)=>mix?LocalVideoEngine.mixMusic(input:v,audio:path,musicVolume:.35,originalVolume:volume):LocalVideoEngine.addMusic(input:v,audio:path),'${mix?'Original audio and music mixed':'Music track replaced'} and exported.');}
   Future<void> title() async {
     final t=TextEditingController();
     final value=await showDialog<String>(context:context,builder:(ctx)=>AlertDialog(title:const Text('Add title'),content:TextField(controller:t,maxLength:80),actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(ctx,t.text.trim()),child:const Text('Apply'))]));
@@ -385,7 +387,8 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
         ]),
         const SizedBox(height:12),const Text('04 · Audio Studio',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
         Wrap(spacing:8,children:[
-          OutlinedButton.icon(onPressed:busy?null:music,icon:const Icon(Icons.music_note),label:const Text('Add music')),
+          OutlinedButton.icon(onPressed:busy?null:()=>music(),icon:const Icon(Icons.music_note),label:const Text('Replace music')),
+          OutlinedButton.icon(onPressed:busy?null:()=>music(mix:true),icon:const Icon(Icons.graphic_eq),label:const Text('Mix music + original')),
           OutlinedButton.icon(onPressed:busy?null:title,icon:const Icon(Icons.text_fields),label:const Text('Add title')),
           OutlinedButton.icon(onPressed:busy?null:merge,icon:const Icon(Icons.call_merge),label:const Text('Merge clip')),
           OutlinedButton.icon(onPressed:busy?null:()=>run((v)=>LocalVideoEngine.fadeAudio(input:v,durationSeconds:duration.inMilliseconds/1000),'Audio fade in/out applied.'),icon:const Icon(Icons.graphic_eq),label:const Text('Audio fade')),
@@ -402,7 +405,9 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
         FilledButton.tonalIcon(onPressed:busy||backgroundPath==null?null:()=>run((v)=>LocalVideoEngine.chromaKeyBackground(input:v,background:backgroundPath!),'Green-screen background replaced. Use a solid green source.'),icon:const Icon(Icons.layers),label:const Text('Replace green background')),
         const SizedBox(height:12),const Text('06 · Export Quality',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
         DropdownButton<int>(value:exportHeight,isExpanded:true,items:const [720,1080,1440,2160].map((h)=>DropdownMenuItem(value:h,child:Text(h==2160?'4K UHD':h==1440?'2K QHD':h==1080?'1080p Full HD':'720p HD'))).toList(),onChanged:busy?null:(v)=>setState(()=>exportHeight=v??1080)),
-        FilledButton.tonalIcon(onPressed:busy?null:()=>run((v)=>LocalVideoEngine.exportResolution(input:v,height:exportHeight),'Exported at selected resolution. Device codec support may vary.'),icon:const Icon(Icons.high_quality),label:const Text('Export selected resolution')),
+        DropdownButton<int>(value:exportFps,isExpanded:true,items:const [24,25,30,50,60].map((v)=>DropdownMenuItem(value:v,child:Text('$v FPS'))).toList(),onChanged:busy?null:(v)=>setState(()=>exportFps=v??30)),
+        DropdownButton<int>(value:exportBitrate,isExpanded:true,items:const [2,4,8,12,20].map((v)=>DropdownMenuItem(value:v,child:Text('$v Mbps · bitrate'))).toList(),onChanged:busy?null:(v)=>setState(()=>exportBitrate=v??8)),
+        FilledButton.tonalIcon(onPressed:busy?null:()=>run((v)=>LocalVideoEngine.exportAdvanced(input:v,height:exportHeight,fps:exportFps,bitrateMbps:exportBitrate),'Exported at selected resolution, FPS and bitrate.'),icon:const Icon(Icons.high_quality),label:const Text('Export with quality settings')),
       ],
       if(busy)const Padding(padding:EdgeInsets.all(14),child:Center(child:CircularProgressIndicator())),
       if(status!=null)Text(status!,style:const TextStyle(color:_gold)),

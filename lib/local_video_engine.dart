@@ -132,7 +132,7 @@ class LocalVideoEngine {
       throw ArgumentError('Volume must be between 0 and 2.');
     }
     final output = await _outputPath('PixelMagic_Volume');
-    final command = '-y -i ' + _quote(input) + ' -vf "null" -af "volume=' +
+    final command = '-y -i ' + _quote(input) + ' -af "volume=' +
         volume.toStringAsFixed(3) +
         '" -c:v copy -c:a aac -b:a 160k -movflags +faststart ' +
         _quote(output);

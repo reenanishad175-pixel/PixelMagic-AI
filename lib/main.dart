@@ -28,16 +28,57 @@ class PixelMagicApp extends StatelessWidget {
     theme: ThemeData(
       brightness: Brightness.dark,
       scaffoldBackgroundColor: const Color(0xFF0B0D16),
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF9B7BFF), brightness: Brightness.dark),
+      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF18C6B8), brightness: Brightness.dark),
       textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
       useMaterial3: true,
       inputDecorationTheme: const InputDecorationTheme(
-        filled: true, fillColor: Color(0xFF171A29),
+        filled: true, fillColor: Color(0xFF111F2B),
         border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14))),
       ),
     ),
     home: supabaseKey.isEmpty ? const SetupScreen() : const AuthGate(),
   );
+}
+
+
+class PixelMagicLogo extends StatelessWidget {
+  final double size;
+  final bool wordmark;
+  const PixelMagicLogo({super.key, this.size = 64, this.wordmark = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final mark = Container(
+      width: size, height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(size * 0.28),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF25D7C5), Color(0xFF126A78), Color(0xFF172B47)],
+          begin: Alignment.topLeft, end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: const Color(0xFF8AF1E3).withOpacity(0.45), width: 1.2),
+        boxShadow: [BoxShadow(color: const Color(0xFF19C9B6).withOpacity(0.22), blurRadius: size * 0.24, spreadRadius: 1)],
+      ),
+      child: Stack(alignment: Alignment.center, children: [
+        Icon(Icons.auto_awesome_rounded, size: size * 0.56, color: const Color(0xFFFFD98A)),
+        Positioned(right: size * 0.15, bottom: size * 0.16,
+          child: Container(width: size * 0.13, height: size * 0.13,
+            decoration: BoxDecoration(color: const Color(0xFFFFD98A), borderRadius: BorderRadius.circular(size * 0.035)))),
+        Positioned(left: size * 0.16, top: size * 0.17,
+          child: Container(width: size * 0.09, height: size * 0.09,
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(size * 0.025)))),
+      ]),
+    );
+    if (!wordmark) return mark;
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      mark,
+      const SizedBox(width: 14),
+      const Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+        Text('PixelMagic', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, letterSpacing: -0.8)),
+        Text('AI CREATIVE STUDIO', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 2.0, color: Color(0xFF55DCCB))),
+      ]),
+    ]);
+  }
 }
 
 class SetupScreen extends StatelessWidget {
@@ -47,7 +88,7 @@ class SetupScreen extends StatelessWidget {
     body: Center(child: Padding(
       padding: EdgeInsets.all(28),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.auto_awesome, size: 64, color: Color(0xFFB69CFF)),
+        PixelMagicLogo(size: 76),
         SizedBox(height: 18),
         Text('PixelMagic AI', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
         SizedBox(height: 12),
@@ -206,7 +247,7 @@ class _LoginScreenState extends State<LoginScreen> {
     padding: const EdgeInsets.all(24),
     child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 440), child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const Icon(Icons.auto_awesome, size: 62, color: Color(0xFFB69CFF)),
+        const PixelMagicLogo(size: 76),
         const SizedBox(height: 16),
         const Text('PixelMagic AI', textAlign: TextAlign.center, style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
@@ -323,7 +364,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.lock_reset, size: 58, color: Color(0xFFC2AEFF)),
+              const Icon(Icons.lock_reset, size: 58, color: Color(0xFF55DCCB)),
               const SizedBox(height: 18),
               const Text('Create a new password', textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               const SizedBox(height: 22),
@@ -447,12 +488,12 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
           gradient: const LinearGradient(
-            colors: [Color(0xFF49377D), Color(0xFF20223D)],
+            colors: [Color(0xFF145B5A), Color(0xFF162D3B)],
             begin: Alignment.topLeft, end: Alignment.bottomRight,
           ),
         ),
         child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('YOUR CREATIVE STUDIO', style: TextStyle(letterSpacing: 1.4, fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFD5C9FF))),
+          Text('YOUR CREATIVE STUDIO', style: TextStyle(letterSpacing: 1.4, fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFBCEFE8))),
           SizedBox(height: 10),
           Text('Make your ideas\\nlook magical.', style: TextStyle(fontSize: 27, height: 1.18, fontWeight: FontWeight.bold)),
           SizedBox(height: 8),
@@ -475,7 +516,7 @@ class _HomeScreenState extends State<HomeScreen> {
         itemBuilder: (context, index) {
           final feature = features[index];
           return Material(
-            color: const Color(0xFF171A29),
+            color: const Color(0xFF111F2B),
             borderRadius: BorderRadius.circular(18),
             child: InkWell(
               borderRadius: BorderRadius.circular(18),
@@ -490,8 +531,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Container(
                       width: 45, height: 45,
-                      decoration: BoxDecoration(color: const Color(0xFF30274E), borderRadius: BorderRadius.circular(14)),
-                      child: Icon(feature.icon, color: const Color(0xFFC2AEFF), size: 25),
+                      decoration: BoxDecoration(color: const Color(0xFF153E43), borderRadius: BorderRadius.circular(14)),
+                      child: Icon(feature.icon, color: const Color(0xFF55DCCB), size: 25),
                     ),
                     const Spacer(),
                     Text(feature.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -516,7 +557,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.all(20),
       children: [
         const SizedBox(height: 12),
-        const CircleAvatar(radius: 38, backgroundColor: Color(0xFF30274E), child: Icon(Icons.person, size: 42, color: Color(0xFFC2AEFF))),
+        const CircleAvatar(radius: 38, backgroundColor: Color(0xFF153E43), child: Icon(Icons.person, size: 42, color: Color(0xFF55DCCB))),
         const SizedBox(height: 14),
         Center(child: Text(displayName.toString(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
         Center(child: Text(user?.email ?? '', style: const TextStyle(color: Colors.white60))),
@@ -524,9 +565,9 @@ class _HomeScreenState extends State<HomeScreen> {
         const Text('Profile details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
         Card(
-          color: const Color(0xFF171A29),
+          color: const Color(0xFF111F2B),
           child: ListTile(
-            leading: const Icon(Icons.phone_android, color: Color(0xFFC2AEFF)),
+            leading: const Icon(Icons.phone_android, color: Color(0xFF55DCCB)),
             title: const Text('Mobile number'),
             subtitle: Text(checkingMobile ? 'Loading…' : (mobileNumber ?? 'Not added yet')),
             trailing: TextButton(
@@ -545,7 +586,7 @@ class _HomeScreenState extends State<HomeScreen> {
     padding: const EdgeInsets.all(20),
     children: const [
       SizedBox(height: 18),
-      Icon(Icons.download_for_offline_outlined, size: 64, color: Color(0xFFC2AEFF)),
+      Icon(Icons.download_for_offline_outlined, size: 64, color: Color(0xFF55DCCB)),
       SizedBox(height: 16),
       Center(child: Text('Your downloads', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold))),
       SizedBox(height: 8),
@@ -561,9 +602,9 @@ class _HomeScreenState extends State<HomeScreen> {
       const Text('Settings', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
       const SizedBox(height: 14),
       Card(
-        color: const Color(0xFF171A29),
+        color: const Color(0xFF111F2B),
         child: ListTile(
-          leading: const Icon(Icons.logout, color: Color(0xFFC2AEFF)),
+          leading: const Icon(Icons.logout, color: Color(0xFF55DCCB)),
           title: const Text('Sign out'),
           subtitle: const Text('Sign out of your PixelMagic account'),
           onTap: () => Supabase.instance.client.auth.signOut(),
@@ -579,7 +620,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Row(children: [
-          const Icon(Icons.auto_awesome, color: Color(0xFFB69CFF)),
+          const PixelMagicLogo(size: 34),
           const SizedBox(width: 9),
           Text(titles[selectedTab], style: const TextStyle(fontWeight: FontWeight.bold)),
         ]),
@@ -680,10 +721,10 @@ class _FeatureScreenState extends State<FeatureScreen> {
           borderRadius: BorderRadius.circular(20),
           child: Container(
             height: 270, width: double.infinity,
-            decoration: BoxDecoration(color: const Color(0xFF171A29), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFF514477))),
+            decoration: BoxDecoration(color: const Color(0xFF111F2B), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFF286A68))),
             clipBehavior: Clip.antiAlias,
             child: selectedImage == null
-              ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.add_photo_alternate_outlined, size: 54, color: Color(0xFFC2AEFF)), const SizedBox(height: 12), Text(picking ? 'Opening gallery…' : 'Tap to choose a photo'), const SizedBox(height: 5), const Text('Select an image from your phone', style: TextStyle(color: Colors.white54, fontSize: 12))])
+              ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.add_photo_alternate_outlined, size: 54, color: Color(0xFF55DCCB)), const SizedBox(height: 12), Text(picking ? 'Opening gallery…' : 'Tap to choose a photo'), const SizedBox(height: 5), const Text('Select an image from your phone', style: TextStyle(color: Colors.white54, fontSize: 12))])
               : Image.file(File(selectedImage!.path), fit: BoxFit.contain),
           ),
         ),
@@ -733,9 +774,9 @@ class CreditsPanel extends StatelessWidget {
     builder: (context, snapshot) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFF171A29),
+        color: const Color(0xFF111F2B),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF39314F)),
+        border: Border.all(color: const Color(0xFF254D50)),
       ),
       child: Row(children: [
         const Icon(Icons.bolt, color: Color(0xFFFFD479), size: 25),
@@ -743,7 +784,7 @@ class CreditsPanel extends StatelessWidget {
         const Expanded(child: Text('Your credits', style: TextStyle(fontWeight: FontWeight.w600))),
         Text(
           snapshot.hasError ? '—' : snapshot.hasData ? '${snapshot.data ?? 0}' : '…',
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFC2AEFF)),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF55DCCB)),
         ),
       ]),
     ),

@@ -107,4 +107,36 @@ class LocalVideoEngine {
       if (await list.exists()) await list.delete();
     }
   }
+  static Future<String> setSpeed({
+    required String input,
+    required double speed,
+  }) async {
+    if (speed < 0.5 || speed > 2.0) {
+      throw ArgumentError('Speed must be between 0.5x and 2.0x.');
+    }
+    final output = await _outputPath('PixelMagic_Speed');
+    final videoPts = (1 / speed).toStringAsFixed(5);
+    final audioTempo = speed.toStringAsFixed(5);
+    final command = '-y -i ' + _quote(input) +
+        ' -vf "setpts=' + videoPts + '*PTS" -af "atempo=' + audioTempo +
+        '" -c:v mpeg4 -q:v 3 -c:a aac -b:a 160k -movflags +faststart ' +
+        _quote(output);
+    return _run(command, output, 'Video speed');
+  }
+
+  static Future<String> setVolume({
+    required String input,
+    required double volume,
+  }) async {
+    if (volume < 0 || volume > 2.0) {
+      throw ArgumentError('Volume must be between 0 and 2.');
+    }
+    final output = await _outputPath('PixelMagic_Volume');
+    final command = '-y -i ' + _quote(input) + ' -vf "null" -af "volume=' +
+        volume.toStringAsFixed(3) +
+        '" -c:v copy -c:a aac -b:a 160k -movflags +faststart ' +
+        _quote(output);
+    return _run(command, output, 'Video volume');
+  }
+
 }

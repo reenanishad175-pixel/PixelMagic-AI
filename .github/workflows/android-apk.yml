@@ -37,6 +37,7 @@ jobs:
           p = Path("android/app/build.gradle.kts")
           s = p.read_text()
           s = s.replace("minSdk = flutter.minSdkVersion", "minSdk = 24")
+          s = s.replace("compileSdk = flutter.compileSdkVersion", "compileSdk = 36")
           p.write_text(s)
           PY
       - name: Register Android auth deep link

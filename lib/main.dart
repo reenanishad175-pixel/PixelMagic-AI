@@ -11,7 +11,7 @@ const supabaseKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (supabaseKey.isNotEmpty) {
-    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseKey);
+    await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseKey);
   }
   runApp(const PixelMagicApp());
 }

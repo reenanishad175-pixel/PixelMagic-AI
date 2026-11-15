@@ -132,7 +132,8 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
   VideoPlayerController? controller;
   bool busy=false;
   String? status,error;
-  double start=0,end=0,speed=1,volume=1;
+  double start=0,end=0,speed=1,volume=1,gradeBrightness=0,gradeContrast=1,gradeSaturation=1,cropFraction=.85;
+  int exportHeight=1080;
   String filter='Original';
   Future<void> choose() async { final p=await picker.pickVideo(source:ImageSource.gallery); if(p!=null) await load(p.path); }
   Future<void> load(String path) async {
@@ -184,6 +185,13 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
         _slider('Volume',volume,0,2,'',(v)=>volume=v),
         FilledButton.tonalIcon(onPressed:busy||volume==1?null:()=>run((v)=>LocalVideoEngine.setVolume(input:v,volume:volume),'Volume updated.'),icon:const Icon(Icons.volume_up),label:const Text('Apply volume')),
         const SizedBox(height:12),const Text('03 · Professional Color Grading',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
+        _slider('Brightness',gradeBrightness,-.5,.5,'',(v)=>gradeBrightness=v),
+        _slider('Contrast',gradeContrast,.5,1.8,'×',(v)=>gradeContrast=v),
+        _slider('Saturation',gradeSaturation,0,2,'×',(v)=>gradeSaturation=v),
+        FilledButton.tonalIcon(onPressed:busy?null:()=>run((v)=>LocalVideoEngine.adjustColor(input:v,brightness:gradeBrightness,contrast:gradeContrast,saturation:gradeSaturation),'Manual color grade applied.'),icon:const Icon(Icons.tune),label:const Text('Apply manual color grade')),
+        const SizedBox(height:12),const Text('Crop & Framing',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
+        _slider('Center crop',cropFraction,.5,1,'',(v)=>cropFraction=v),
+        FilledButton.tonalIcon(onPressed:busy?null:()=>run((v)=>LocalVideoEngine.crop(input:v,fraction:cropFraction),'Video crop applied.'),icon:const Icon(Icons.crop),label:const Text('Apply crop')),
         Wrap(spacing:7,runSpacing:7,children:['Original','Cinematic','Vintage','Retro','B&W','HDR','Vivid','Warm','Cool','Film','Moody','Portrait'].map((p)=>ChoiceChip(label:Text(p),selected:filter==p,onSelected:busy||p=='Original'?null:(_)=>setState(()=>filter=p))).toList()),
         FilledButton.tonalIcon(onPressed:busy||filter=='Original'?null:()=>run((v)=>LocalVideoEngine.applyFilter(input:v,filter:filter),filter+' look applied.'),icon:const Icon(Icons.color_lens),label:const Text('Apply selected look')),
         const SizedBox(height:12),const Text('04 · Audio Studio',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
@@ -195,10 +203,13 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
         const SizedBox(height:12),const Text('05 · Background, Effects & Motion',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
         Wrap(spacing:8,children:[
           OutlinedButton.icon(onPressed:busy?null:()=>run((v)=>LocalVideoEngine.reverse(input:v),'Video reversed.'),icon:const Icon(Icons.swap_horiz),label:const Text('Reverse')),
-          OutlinedButton.icon(onPressed:busy?null:()=>run((v)=>LocalVideoEngine.fade(input:v),'Fade in/out applied.'),icon:const Icon(Icons.gradient),label:const Text('Fade transition')),
+          OutlinedButton.icon(onPressed:busy?null:()=>run((v)=>LocalVideoEngine.fade(input:v,durationSeconds:duration.inMilliseconds/1000),'Fade in/out applied.'),icon:const Icon(Icons.gradient),label:const Text('Fade transition')),
         ]),
         OutlinedButton.icon(onPressed:busy?null:chooseBackground,icon:const Icon(Icons.wallpaper),label:Text(backgroundPath==null?'Choose photo/video background':'Background selected')),
         FilledButton.tonalIcon(onPressed:busy||backgroundPath==null?null:()=>run((v)=>LocalVideoEngine.chromaKeyBackground(input:v,background:backgroundPath!),'Green-screen background replaced. Use a solid green source.'),icon:const Icon(Icons.layers),label:const Text('Replace green background')),
+        const SizedBox(height:12),const Text('06 · Export Quality',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
+        DropdownButton<int>(value:exportHeight,isExpanded:true,items:const [720,1080,1440,2160].map((h)=>DropdownMenuItem(value:h,child:Text(h==2160?'4K UHD':h==1440?'2K QHD':h==1080?'1080p Full HD':'720p HD'))).toList(),onChanged:busy?null:(v)=>setState(()=>exportHeight=v??1080)),
+        FilledButton.tonalIcon(onPressed:busy?null:()=>run((v)=>LocalVideoEngine.exportResolution(input:v,height:exportHeight),'Exported at selected resolution. Device codec support may vary.'),icon:const Icon(Icons.high_quality),label:const Text('Export selected resolution')),
       ],
       if(busy)const Padding(padding:EdgeInsets.all(14),child:Center(child:CircularProgressIndicator())),
       if(status!=null)Text(status!,style:const TextStyle(color:_gold)),

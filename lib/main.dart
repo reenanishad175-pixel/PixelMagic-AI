@@ -60,8 +60,14 @@ class AuthGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) => StreamBuilder<AuthState>(
     stream: Supabase.instance.client.auth.onAuthStateChange,
-    builder: (context, snapshot) => Supabase.instance.client.auth.currentSession == null
-      ? const LoginScreen() : const HomeScreen(),
+    builder: (context, snapshot) {
+      if (snapshot.data?.event == AuthChangeEvent.passwordRecovery) {
+        return const PasswordRecoveryScreen();
+      }
+      return Supabase.instance.client.auth.currentSession == null
+          ? const LoginScreen()
+          : const HomeScreen();
+    },
   );
 }
 
@@ -146,6 +152,28 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) setState(() => busy = false);
   }
 
+  Future<void> sendPasswordReset() async {
+    FocusScope.of(context).unfocus();
+    final address = email.text.trim();
+    if (address.isEmpty || !address.contains('@')) {
+      setState(() => error = 'Enter your registered email address first.');
+      return;
+    }
+    setState(() { busy = true; error = null; notice = null; });
+    try {
+      await Supabase.instance.client.auth.resetPasswordForEmail(
+        address,
+        redirectTo: 'io.supabase.pixelmagic://login-callback/',
+      );
+      if (mounted) setState(() => notice = 'Password reset link sent. Open the email on this phone and follow the link to set a new password.');
+    } on AuthException catch (e) {
+      if (mounted) setState(() => error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => error = 'Could not send the reset link. Please try again.');
+    }
+    if (mounted) setState(() => busy = false);
+  }
+
   Future<void> signInWithGoogle() async {
     setState(() { busy = true; error = null; notice = null; });
     try {
@@ -202,6 +230,14 @@ class _LoginScreenState extends State<LoginScreen> {
         if (notice != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(notice!, style: const TextStyle(color: Colors.greenAccent, fontSize: 12))),
         const SizedBox(height: 18),
         FilledButton(onPressed: busy ? null : submit, child: Text(busy ? 'Please wait…' : creating ? 'Register' : 'Login')),
+        if (!creating && !usePhone)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: busy ? null : sendPasswordReset,
+              child: const Text('Forgot password?'),
+            ),
+          ),
         if (!creating) ...[
           const SizedBox(height: 10),
           OutlinedButton.icon(
@@ -216,6 +252,84 @@ class _LoginScreenState extends State<LoginScreen> {
       ],
     )),
   )));
+}
+
+class PasswordRecoveryScreen extends StatefulWidget {
+  const PasswordRecoveryScreen({super.key});
+
+  @override
+  State<PasswordRecoveryScreen> createState() => _PasswordRecoveryScreenState();
+}
+
+class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
+  final password = TextEditingController();
+  final confirm = TextEditingController();
+  bool busy = false;
+  String? error;
+
+  Future<void> savePassword() async {
+    FocusScope.of(context).unfocus();
+    if (password.text.length < 6) {
+      setState(() => error = 'Password must be at least 6 characters.');
+      return;
+    }
+    if (password.text != confirm.text) {
+      setState(() => error = 'Both passwords do not match.');
+      return;
+    }
+    setState(() { busy = true; error = null; });
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: password.text),
+      );
+      await Supabase.instance.client.auth.signOut();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password updated. Please log in with your new password.')),
+        );
+      }
+    } on AuthException catch (e) {
+      if (mounted) setState(() => error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => error = 'Could not update your password. Please reopen the reset link and try again.');
+    }
+    if (mounted) setState(() => busy = false);
+  }
+
+  @override
+  void dispose() {
+    password.dispose();
+    confirm.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Set a new password')),
+    body: Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Icon(Icons.lock_reset, size: 58, color: Color(0xFFC2AEFF)),
+              const SizedBox(height: 18),
+              const Text('Create a new password', textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 22),
+              TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'New password')),
+              const SizedBox(height: 12),
+              TextField(controller: confirm, obscureText: true, decoration: const InputDecoration(labelText: 'Confirm new password')),
+              if (error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(error!, style: const TextStyle(color: Colors.redAccent))),
+              const SizedBox(height: 18),
+              FilledButton(onPressed: busy ? null : savePassword, child: Text(busy ? 'Please wait…' : 'Save new password')),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class Feature {

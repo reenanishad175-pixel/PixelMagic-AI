@@ -393,25 +393,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> addMobile() async {
-    final controller = TextEditingController();
     final entered = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Add mobile number'),
-        content: TextField(
-          controller: controller, keyboardType: TextInputType.phone,
-          maxLength: 10, decoration: const InputDecoration(
-            labelText: '10-digit mobile number', prefixText: '+91 ',
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, controller.text), child: const Text('Save')),
-        ],
-      ),
+      builder: (_) => const AddMobileDialog(),
     );
     final digits = (entered ?? '').replaceAll(RegExp(r'[^0-9]'), '');
-    controller.dispose();
     if (digits.length != 10) return;
     final normalized = '+91$digits';
     try {
@@ -508,6 +494,47 @@ class _HomeScreenState extends State<HomeScreen> {
       const SizedBox(height: 18),
       const Center(child: Text('More creative features are being added.', style: TextStyle(color: Colors.white38, fontSize: 11))),
     ]),
+  );
+}
+
+class AddMobileDialog extends StatefulWidget {
+  const AddMobileDialog({super.key});
+
+  @override
+  State<AddMobileDialog> createState() => _AddMobileDialogState();
+}
+
+class _AddMobileDialogState extends State<AddMobileDialog> {
+  final controller = TextEditingController();
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Add mobile number'),
+    content: TextField(
+      controller: controller,
+      keyboardType: TextInputType.phone,
+      maxLength: 10,
+      decoration: const InputDecoration(
+        labelText: '10-digit mobile number',
+        prefixText: '+91 ',
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.pop(context, controller.text),
+        child: const Text('Save'),
+      ),
+    ],
   );
 }
 

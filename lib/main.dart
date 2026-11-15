@@ -140,11 +140,13 @@ class _LoginScreenState extends State<LoginScreen> {
           ? 'This mobile number is already registered with another account. Please use a different number.'
           : 'Could not complete this step. Check your details and try again.');
     } on AuthException catch (e) {
-      final duplicateMobile = e.message.contains('profiles_mobile_number_unique') ||
-          e.message.toLowerCase().contains('duplicate key') ||
-          e.message.toLowerCase().contains('already exists');
+      final authMessage = e.message.toLowerCase();
+      final duplicateMobile = authMessage.contains('profiles_mobile_number_unique') ||
+          authMessage.contains('duplicate key') ||
+          authMessage.contains('already exists') ||
+          authMessage.contains('database error saving new user');
       if (mounted) setState(() => error = duplicateMobile
-          ? 'This mobile number is already registered with another account. Please use a different number.'
+          ? 'This mobile number may already be registered with another account. Please use a different number or contact support if the problem continues.'
           : e.message);
     } catch (_) {
       if (mounted) setState(() => error = 'Could not complete this step. Check your details and try again.');

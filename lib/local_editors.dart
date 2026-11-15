@@ -5,6 +5,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:gal/gal.dart';
+import 'package:file_picker/file_picker.dart';
+import 'local_video_engine.dart';
 import 'local_downloads.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
@@ -161,22 +163,107 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
   final _picker = ImagePicker();
   VideoPlayerController? _controller;
   bool _loading = false;
+  bool _editing = false;
   String? _error;
+  String? _status;
+  double _trimStart = 0;
+  double _trimEnd = 0;
+  String _filter = 'Original';
 
   Future<void> _chooseVideo() async {
     final file = await _picker.pickVideo(source: ImageSource.gallery);
     if (file == null) return;
-    setState(() { _loading = true; _error = null; });
+    await _loadVideo(file.path);
+  }
+
+  Future<void> _loadVideo(String path) async {
+    setState(() { _loading = true; _error = null; _status = null; });
     await _controller?.dispose();
-    final controller = VideoPlayerController.file(File(file.path));
+    final controller = VideoPlayerController.file(File(path));
     try {
       await controller.initialize();
       if (!mounted) { await controller.dispose(); return; }
-      setState(() { _controller = controller; _loading = false; });
+      setState(() {
+        _controller = controller;
+        _trimStart = 0;
+        _trimEnd = controller.value.duration.inMilliseconds / 1000;
+        _loading = false;
+      });
     } catch (_) {
       await controller.dispose();
       if (mounted) setState(() { _loading = false; _error = 'This video could not be opened on this device.'; });
     }
+  }
+
+  Future<void> _perform(Future<String> Function(String input) action, String success) async {
+    final c = _controller;
+    if (c == null || _editing) return;
+    setState(() { _editing = true; _error = null; _status = 'Processing video on this device…'; });
+    try {
+      await c.pause();
+      final output = await action(c.dataSource);
+      await _loadVideo(output);
+      if (mounted) setState(() => _status = success);
+      try {
+        await Gal.requestAccess();
+        await Gal.putVideo(output);
+      } catch (_) {
+        // The file is already saved inside Downloads even if gallery permission is denied.
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _editing = false);
+    }
+  }
+
+  Future<void> _trim() async {
+    final c = _controller;
+    if (c == null) return;
+    await _perform((path) => LocalVideoEngine.trim(
+      input: path,
+      start: Duration(milliseconds: (_trimStart * 1000).round()),
+      end: Duration(milliseconds: (_trimEnd * 1000).round()),
+    ), 'Trimmed video saved to Downloads.');
+  }
+
+  Future<void> _addMusic() async {
+    final picked = await FilePicker.platform.pickFiles(type: FileType.audio);
+    final path = picked?.files.single.path;
+    if (path == null) return;
+    await _perform((input) => LocalVideoEngine.addMusic(input: input, audio: path), 'Music added and video saved.');
+  }
+
+  Future<void> _addText() async {
+    final textController = TextEditingController();
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add video text'),
+        content: TextField(controller: textController, autofocus: true, maxLength: 80, decoration: const InputDecoration(hintText: 'Type your caption')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, textController.text.trim()), child: const Text('Apply')),
+        ],
+      ),
+    );
+    textController.dispose();
+    if (value == null || value.isEmpty) return;
+    final seconds = _controller?.value.duration.inMilliseconds.toDouble() ?? 0;
+    await _perform((input) => LocalVideoEngine.addText(input: input, text: value, seconds: seconds / 1000), 'Text overlay added and video saved.');
+  }
+
+  Future<void> _merge() async {
+    final second = await _picker.pickVideo(source: ImageSource.gallery);
+    if (second == null || _controller == null) return;
+    await _perform((first) => LocalVideoEngine.merge(first: first, second: second.path), 'Videos merged and saved.');
+  }
+
+  Future<void> _applyVideoFilter(String name) async {
+    if (name == 'Original') return;
+    setState(() => _filter = name);
+    await _perform((input) => LocalVideoEngine.applyFilter(input: input, filter: name), '$name filter applied and saved.');
+    if (_error != null && mounted) setState(() => _filter = 'Original');
   }
 
   @override
@@ -187,6 +274,9 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final c = _controller;
+    final duration = c?.value.duration ?? Duration.zero;
+    final maxSeconds = duration.inMilliseconds / 1000;
+    final canTrim = c != null && maxSeconds > 1 && _trimEnd > _trimStart;
     return Scaffold(
       appBar: AppBar(title: const Text('Video Studio')),
       body: ListView(padding: const EdgeInsets.all(16), children: [
@@ -196,44 +286,45 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 const Icon(Icons.video_library_outlined, size: 58, color: _accent),
                 const SizedBox(height: 12), Text(_loading ? 'Loading video…' : 'Choose a video'),
-                const SizedBox(height: 5), const Text('Preview and playback on your phone', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                const SizedBox(height: 5), const Text('Offline video editing and export', style: TextStyle(color: Colors.white54, fontSize: 12)),
               ])))
         else ...[
           ClipRRect(borderRadius: BorderRadius.circular(16),
             child: AspectRatio(aspectRatio: c.value.aspectRatio, child: VideoPlayer(c))),
           const SizedBox(height: 12),
           Row(children: [
-            IconButton.filled(onPressed: () => setState(() => c.value.isPlaying ? c.pause() : c.play()),
+            IconButton.filled(onPressed: _editing ? null : () => setState(() => c.value.isPlaying ? c.pause() : c.play()),
               icon: Icon(c.value.isPlaying ? Icons.pause : Icons.play_arrow)),
-            Expanded(child: VideoProgressIndicator(c, allowScrubbing: true, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12))),
-            Text(_time(c.value.position) + ' / ' + _time(c.value.duration), style: const TextStyle(fontSize: 11)),
+            Expanded(child: VideoProgressIndicator(c, allowScrubbing: !_editing, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12))),
+            Text(_time(c.value.position) + ' / ' + _time(duration), style: const TextStyle(fontSize: 11)),
           ]),
-          OutlinedButton.icon(onPressed: _chooseVideo, icon: const Icon(Icons.video_file), label: const Text('Choose another video')),
-          const SizedBox(height: 10),
-          const Text('Offline editing tools', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          OutlinedButton.icon(onPressed: _editing ? null : _chooseVideo, icon: const Icon(Icons.video_file), label: const Text('Choose another video')),
+          const SizedBox(height: 12),
+          const Text('Trim / Cut', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          Text('Select the part to keep · ${_time(Duration(milliseconds: (_trimStart * 1000).round()))} – ${_time(Duration(milliseconds: (_trimEnd * 1000).round()))}', style: const TextStyle(color: Colors.white60, fontSize: 12)),
+          if (maxSeconds > 1) RangeSlider(
+            min: 0, max: maxSeconds,
+            values: RangeValues(_trimStart.clamp(0, maxSeconds), _trimEnd.clamp(0, maxSeconds)),
+            onChanged: _editing ? null : (v) => setState(() { _trimStart = v.start; _trimEnd = v.end; }),
+          ),
+          FilledButton.icon(onPressed: _editing || !canTrim ? null : _trim, icon: const Icon(Icons.content_cut), label: const Text('Trim and export')),
+          const SizedBox(height: 14),
+          const Text('Video filters', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          const _ComingSoonTile(icon: Icons.content_cut, title: 'Trim / Cut', detail: 'Clip selection and export need a local video-rendering engine.'),
-          const _ComingSoonTile(icon: Icons.music_note, title: 'Add music', detail: 'Audio mixing and export need a local video-rendering engine.'),
-          const _ComingSoonTile(icon: Icons.text_fields, title: 'Text overlay', detail: 'Text overlay export needs the same local rendering engine.'),
-          const _ComingSoonTile(icon: Icons.call_merge, title: 'Merge videos', detail: 'Joining clips needs local video-rendering support.'),
+          Wrap(spacing: 8, runSpacing: 8, children: ['Original','Cinematic','Vintage','Retro','B&W','HDR','Vivid','Warm','Cool','Film','Moody'].map((name) =>
+            ChoiceChip(label: Text(name), selected: _filter == name, onSelected: _editing ? null : (_) => _applyVideoFilter(name))).toList()),
+          const SizedBox(height: 14),
+          const Text('More editing tools', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          FilledButton.tonalIcon(onPressed: _editing ? null : _addMusic, icon: const Icon(Icons.music_note), label: const Text('Add music from phone')),
+          FilledButton.tonalIcon(onPressed: _editing ? null : _addText, icon: const Icon(Icons.text_fields), label: const Text('Add text overlay')),
+          FilledButton.tonalIcon(onPressed: _editing ? null : _merge, icon: const Icon(Icons.call_merge), label: const Text('Merge with another video')),
         ],
-        if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: const TextStyle(color: Colors.redAccent))),
-        if (c == null) const Padding(padding: EdgeInsets.only(top: 14), child: Text('Video preview is offline. Editing and export tools will be added after a compatible free on-device rendering engine is included.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 12))),
+        if (_editing) const Padding(padding: EdgeInsets.symmetric(vertical: 14), child: Center(child: CircularProgressIndicator())),
+        if (_status != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(_status!, style: const TextStyle(color: _accent))),
+        if (_error != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(_error!, style: const TextStyle(color: Colors.redAccent))),
       ]),
       floatingActionButton: c == null ? FloatingActionButton.extended(onPressed: _chooseVideo, icon: const Icon(Icons.video_library), label: const Text('Choose video')) : null,
     );
   }
-}
-
-class _ComingSoonTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String detail;
-  const _ComingSoonTile({required this.icon, required this.title, required this.detail});
-  @override
-  Widget build(BuildContext context) => Card(
-    color: const Color(0xFF111F2B),
-    child: ListTile(leading: Icon(icon, color: _accent), title: Text(title),
-      subtitle: Text(detail, style: const TextStyle(color: Colors.white54, fontSize: 11))),
-  );
 }

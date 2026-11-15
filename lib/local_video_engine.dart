@@ -272,4 +272,36 @@ class LocalVideoEngine {
     return output;
   }
 
+
+  static Future<String> mixMusic({
+    required String input,
+    required String audio,
+    double musicVolume = 0.35,
+    double originalVolume = 1,
+  }) async {
+    if (musicVolume < 0 || musicVolume > 2 || originalVolume < 0 || originalVolume > 2) {
+      throw ArgumentError('Audio levels must be between 0 and 2.');
+    }
+    final output = await _outputPath('PixelMagic_AudioMix');
+    final graph = '[0:a]volume=$originalVolume[a0];[1:a]volume=$musicVolume[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=2[a]';
+    final command = '-y -i ' + _quote(input) + ' -stream_loop -1 -i ' + _quote(audio) +
+      ' -filter_complex "$graph" -map 0:v:0 -map "[a]" -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart ' + _quote(output);
+    return _run(command, output, 'Music mix');
+  }
+
+  static Future<String> exportAdvanced({
+    required String input,
+    required int height,
+    required int fps,
+    required int bitrateMbps,
+  }) async {
+    if (![720, 1080, 1440, 2160].contains(height)) throw ArgumentError('Unsupported export resolution.');
+    if (![24, 25, 30, 50, 60].contains(fps)) throw ArgumentError('Unsupported frame rate.');
+    if (![2, 4, 8, 12, 20].contains(bitrateMbps)) throw ArgumentError('Unsupported bitrate.');
+    final output = await _outputPath('PixelMagic_Export');
+    final command = '-y -i ' + _quote(input) +
+      ' -vf "scale=-2:$height" -r $fps -c:v mpeg4 -b:v ${bitrateMbps}M -maxrate ${bitrateMbps}M -bufsize ${bitrateMbps * 2}M -c:a aac -b:a 192k -movflags +faststart ' + _quote(output);
+    return _run(command, output, 'Advanced video export');
+  }
+
 }

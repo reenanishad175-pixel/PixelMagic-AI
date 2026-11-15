@@ -114,6 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await auth.signUp(
           email: email.text.trim(),
           password: password.text,
+          emailRedirectTo: 'io.supabase.pixelmagic://login-callback/',
           data: {'full_name': name.text.trim(), 'mobile_number': normalizedPhone},
         );
         if (mounted) setState(() => notice = 'Registration complete. Please verify your email using the link sent to your Gmail/email inbox.');

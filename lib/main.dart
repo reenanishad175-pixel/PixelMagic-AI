@@ -430,7 +430,7 @@ class CreativeHeroBanner extends StatelessWidget {
         child: ClipRRect(borderRadius: BorderRadius.circular(15), child: Stack(fit: StackFit.expand, children: [
           const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF79C6C4), Color(0xFFEF9D83), Color(0xFF533F69)]))),
           const Positioned(top: 14, left: 10, child: Icon(Icons.landscape_rounded, size: 68, color: Color(0xFF244E63))),
-          Positioned(bottom: 10, left: 9, right: 9, child: Container(height: 22, decoration: BoxDecoration(color: Colors.white.withOpacity(.84), borderRadius: BorderRadius.circular(7)), child: const Center(child: Text('COLOR GRADE', style: TextStyle(fontSize: 7, color: Color(0xFF26334B), fontWeight: FontWeight.w900, letterSpacing: 1)))),
+          Positioned(bottom: 10, left: 9, right: 9, child: Container(height: 22, decoration: BoxDecoration(color: Colors.white.withOpacity(.84), borderRadius: BorderRadius.circular(7)), child: const Center(child: Text('COLOR GRADE', style: TextStyle(fontSize: 7, color: Color(0xFF26334B), fontWeight: FontWeight.w900, letterSpacing: 1))))),
         ])),
       ))),
       Positioned(right: 102, bottom: 28, child: Transform.rotate(angle: -.13, child: Container(

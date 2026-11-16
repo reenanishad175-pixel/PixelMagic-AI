@@ -1215,7 +1215,19 @@ class SubscriptionPanel extends StatelessWidget {
           ]),
         ),
         const SizedBox(height: 8),
-        const Text('Prices, coin packages and secure payment activation will appear after API costs and the payment gateway are finalized. No payment is taken here yet.',
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: () => showDialog<void>(context: context, builder: (_) => AlertDialog(
+              title: const Text('Buy AI Coins'),
+              content: const Text('Coin packages will be available after secure payment setup. No payment is taken yet.'),
+              actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+            )),
+            icon: const Icon(Icons.add_shopping_cart),
+            label: const Text('Buy Coins'),
+          ),
+        ),
+        const Text('Secure coin payments are not active yet. Package prices and per-generation coin rates must be configured before charging users.',
             style: TextStyle(color: Colors.white38, fontSize: 10)),
       ]),
     ),
@@ -1257,12 +1269,21 @@ class CreditsPanel extends StatelessWidget {
         border: Border.all(color: const Color(0xFF254D50)),
       ),
       child: Row(children: [
-        const Icon(Icons.bolt, color: Color(0xFFFFD479), size: 25),
+        const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFFFD479), size: 25),
         const SizedBox(width: 10),
-        const Expanded(child: Text('Your credits', style: TextStyle(fontWeight: FontWeight.w600))),
+        const Expanded(child: Text('AI Coin Wallet', style: TextStyle(fontWeight: FontWeight.w600))),
         Text(
           snapshot.hasError ? '—' : snapshot.hasData ? '${snapshot.data ?? 0}' : '…',
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF55DCCB)),
+        ),
+        const SizedBox(width: 8),
+        OutlinedButton(
+          onPressed: () => showDialog<void>(context: context, builder: (_) => AlertDialog(
+            title: const Text('Buy AI Coins'),
+            content: const Text('Coin purchase packages and secure payment are not active yet. No payment will be taken until a payment provider and coin package prices are configured.'),
+            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+          )),
+          child: const Text('Buy Coins', style: TextStyle(fontSize: 11)),
         ),
       ]),
     ),

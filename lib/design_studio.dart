@@ -175,6 +175,11 @@ const _templates = <DesignTemplate>[
   DesignTemplate('Election Campaign', 'Campaign', Icons.campaign, [Color(0xFF172554), Color(0xFFEA580C)], 'आपका समर्थन, हमारा संकल्प'),
   DesignTemplate('Public Meeting', 'Campaign', Icons.groups, [Color(0xFF7F1D1D), Color(0xFFF59E0B)], 'जनसभा में सादर आमंत्रण'),
   DesignTemplate('Business Banner', 'Banners', Icons.storefront, [Color(0xFF0F172A), Color(0xFF0F766E)], 'आपका स्वागत है'),
+  DesignTemplate('YouTube Thumbnail', 'YouTube', Icons.ondemand_video, [Color(0xFF111827), Color(0xFFDC2626)], 'New Video'),
+  DesignTemplate('Channel Profile Logo', 'YouTube', Icons.account_circle, [Color(0xFF172554), Color(0xFF0F766E)], 'Your Channel'),
+  DesignTemplate('YouTube Channel Banner', 'YouTube', Icons.panorama, [Color(0xFF312E81), Color(0xFF0891B2)], 'Subscribe Now'),
+  DesignTemplate('Minimal Logo', 'Logos', Icons.auto_awesome, [Color(0xFF0F172A), Color(0xFF334155)], 'BRAND NAME'),
+  DesignTemplate('Creator Brand', 'Logos', Icons.stars, [Color(0xFF4C1D95), Color(0xFFBE185D)], 'CREATOR'),
 ];
 
 class LogoWallpaperStudio extends StatefulWidget {
@@ -245,7 +250,7 @@ class _LogoWallpaperStudioState extends State<LogoWallpaperStudio> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = ['All', 'Festivals', 'Occasions', 'Scenery', 'Famous Places', 'Campaign', 'Banners'];
+    final categories = ['All', 'Festivals', 'Occasions', 'Scenery', 'Famous Places', 'Campaign', 'Banners', 'YouTube', 'Logos'];
     final visible = _templates.where((t) => category == 'All' || t.category == category).toList();
     final ratio = width / height;
     return Scaffold(
@@ -258,7 +263,15 @@ class _LogoWallpaperStudioState extends State<LogoWallpaperStudio> {
         ])),
         SizedBox(height: 104, child: ListView.separated(scrollDirection: Axis.horizontal, itemCount: visible.length, separatorBuilder: (_, __) => const SizedBox(width: 9), itemBuilder: (_, i) {
           final t = visible[i];
-          return InkWell(onTap: () => setState(() { selected = t; campaignMode = t.category == 'Campaign'; heading.text = t.sample; }),
+          return InkWell(onTap: () => setState(() {
+              selected = t;
+              campaignMode = t.category == 'Campaign';
+              heading.text = t.sample;
+              if (t.title == 'YouTube Thumbnail') { width = 1280; height = 720; }
+              else if (t.title == 'Channel Profile Logo' || t.title == 'Minimal Logo' || t.title == 'Creator Brand') { width = 800; height = 800; }
+              else if (t.title == 'YouTube Channel Banner') { width = 2560; height = 1440; }
+              else { width = 1080; height = 1080; }
+            }),
             child: Container(width: 122, padding: const EdgeInsets.all(10), decoration: BoxDecoration(
               gradient: LinearGradient(colors: t.colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
               borderRadius: BorderRadius.circular(13), border: Border.all(color: selected == t ? _studioAccent : Colors.white24, width: selected == t ? 2 : 1)),

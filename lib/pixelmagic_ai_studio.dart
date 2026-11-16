@@ -217,15 +217,19 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
       const SizedBox(height: 8),
       const Text('Describe your idea and let PixelMagic create it with AI.'),
       const SizedBox(height: 18),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          _taskChip('image', 'AI Image (FAL)', Icons.image_outlined),
-          _taskChip('gemini_image', 'Gemini AI Image', Icons.auto_awesome),
-          _taskChip('video', 'AI Reel (Text to Video)', Icons.movie_outlined),
-          _taskChip('image_to_video', 'Animate a Photo', Icons.motion_photos_auto),
-        ],
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _taskChip('image', 'FAL AI Image', Icons.image_outlined),
+            const SizedBox(width: 8),
+            _taskChip('gemini_image', 'Gemini Image', Icons.auto_awesome),
+            const SizedBox(width: 8),
+            _taskChip('video', 'Text to AI Reel', Icons.movie_outlined),
+            const SizedBox(width: 8),
+            _taskChip('image_to_video', 'Animate Photo', Icons.motion_photos_auto),
+          ],
+        ),
       ),
       if (task == 'image_to_video') ...[
         const SizedBox(height: 14),

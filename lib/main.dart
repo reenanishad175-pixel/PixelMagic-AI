@@ -12,6 +12,7 @@ import 'local_background_remover.dart';
 import 'pixelmagic_ai_studio.dart';
 import 'media_tools.dart';
 import 'design_studio.dart';
+import 'pdf_editor.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const supabaseUrl = 'https://lmpvwgzpyprsqxcxecss.supabase.co';
@@ -652,7 +653,7 @@ class _HomeScreenState extends State<HomeScreen> {
         () => const MediaCompressorScreen()),
       const SizedBox(height: 8),
       _utilityBar(context, 'PDF Editor & Photo to PDF', 'Create PDF from photos or open an existing PDF', Icons.picture_as_pdf,
-        () => const PdfToolsScreen()),
+        () => const ProPdfEditorScreen()),
     ],
   );
 

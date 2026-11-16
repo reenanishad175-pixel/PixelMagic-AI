@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class GeminiChatScreen extends StatefulWidget {
   const GeminiChatScreen({super.key});
@@ -15,12 +16,54 @@ class _GeminiChatScreenState extends State<GeminiChatScreen> {
   final input = TextEditingController();
   final scroll = ScrollController();
   final List<Map<String, String>> messages = [];
-  bool busy = false, loading = true;
+  bool busy = false, loading = true, speechAvailable = false, listening = false;
+  final stt.SpeechToText speech = stt.SpeechToText();
   String? error;
   String get storageKey => 'gemini_chat_${Supabase.instance.client.auth.currentUser?.id ?? 'guest'}';
 
   @override
-  void initState() { super.initState(); _loadHistory(); }
+  void initState() { super.initState(); _loadHistory(); _initSpeech(); }
+
+  Future<void> _initSpeech() async {
+    try {
+      final available = await speech.initialize(
+        onStatus: (status) { if (mounted) setState(() => listening = status == 'listening'); },
+        onError: (e) { if (mounted) setState(() { listening = false; error = e.errorMsg; }); },
+      );
+      if (mounted) setState(() => speechAvailable = available);
+    } catch (_) {
+      if (mounted) setState(() => speechAvailable = false);
+    }
+  }
+
+  Future<void> _toggleListening() async {
+    if (busy) return;
+    if (speech.isListening) {
+      await speech.stop();
+      if (mounted) setState(() => listening = false);
+      return;
+    }
+    if (!speechAvailable) await _initSpeech();
+    if (!speechAvailable) {
+      if (mounted) setState(() => error = 'Voice input is unavailable. Please enable a speech recognition service or Google app microphone permission.');
+      return;
+    }
+    if (mounted) setState(() => error = null);
+    await speech.listen(
+      localeId: Localizations.localeOf(context).languageCode == 'hi' ? 'hi_IN' : 'en_IN',
+      listenFor: const Duration(minutes: 1),
+      pauseFor: const Duration(seconds: 4),
+      onResult: (result) {
+        if (mounted) setState(() {
+          input.value = TextEditingValue(
+            text: result.recognizedWords,
+            selection: TextSelection.collapsed(offset: result.recognizedWords.length),
+          );
+        });
+      },
+    );
+    if (mounted) setState(() => listening = speech.isListening);
+  }
 
   Future<void> _loadHistory() async {
     try {
@@ -82,7 +125,7 @@ class _GeminiChatScreenState extends State<GeminiChatScreen> {
   }
 
   @override
-  void dispose() { input.dispose(); scroll.dispose(); super.dispose(); }
+  void dispose() { speech.stop(); input.dispose(); scroll.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -119,7 +162,13 @@ class _GeminiChatScreenState extends State<GeminiChatScreen> {
           Expanded(child: TextField(controller: input, minLines: 1, maxLines: 5, maxLength: 8000,
             decoration: const InputDecoration(hintText: 'Message Gemini…', counterText: '', contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
             onSubmitted: (_) => _send())),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
+          IconButton(
+            tooltip: listening ? 'Stop voice input' : 'Speak to Gemini',
+            onPressed: busy ? null : _toggleListening,
+            icon: Icon(listening ? Icons.mic : Icons.mic_none_rounded,
+              color: listening ? Colors.redAccent : (speechAvailable ? const Color(0xFF55DCCB) : null)),
+          ),
           IconButton.filled(onPressed: busy ? null : _send, icon: const Icon(Icons.send_rounded)),
         ]))),
     ]),

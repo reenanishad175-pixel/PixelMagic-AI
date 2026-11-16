@@ -61,6 +61,14 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
     if (picked != null && mounted) setState(() => sourcePhoto = picked);
   }
 
+  Future<int?> loadCoinBalance() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return null;
+    final row = await Supabase.instance.client.from('user_credits')
+        .select('balance').eq('user_id', user.id).maybeSingle();
+    return row == null ? 0 : (row['balance'] as num).toInt();
+  }
+
   Future<void> generate() async {
     if (busy || prompt.text.trim().length < 3) return;
     if (task == 'image_to_video' && sourcePhoto == null) {
@@ -211,6 +219,22 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
               : 'Describe your reel',
         ),
       ),
+      FutureBuilder<int?>(
+        future: loadCoinBalance(),
+        builder: (context, snapshot) => Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: const Color(0xFF111F2B), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF254D50))),
+          child: Row(children: [
+            const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFFFD479)),
+            const SizedBox(width: 8),
+            const Expanded(child: Text('Available AI Coins', style: TextStyle(fontWeight: FontWeight.w600))),
+            Text(snapshot.hasError ? '—' : snapshot.hasData ? '${snapshot.data ?? 0}' : '…', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF55DCCB))),
+          ]),
+        ),
+      ),
+      const Text('Generation coin charge: not configured yet. Coin rates and secure wallet deduction must be enabled before paid AI use.', style: TextStyle(color: Colors.white54, fontSize: 11)),
+      const SizedBox(height: 8),
       FilledButton.icon(
         onPressed: busy ? null : generate,
         icon: const Icon(Icons.auto_awesome),

@@ -10,6 +10,8 @@ import 'local_video_engine.dart';
 import 'local_downloads.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
+import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart';
 
 const _accent = Color(0xFF55DCCB);
 const _identity = <double>[1,0,0,0,0, 0,1,0,0,0, 0,0,1,0,0, 0,0,0,1,0];
@@ -65,6 +67,41 @@ class _LocalPhotoEditorScreenState extends State<LocalPhotoEditorScreen> {
   double _intensity = 1;
   bool _showOriginal = false;
   bool _saving = false;
+  bool _transforming = false;
+
+  Future<void> _applyPhotoTransform(String operation) async {
+    if (_photo == null || _transforming) return;
+    setState(() => _transforming = true);
+    try {
+      final bytes = await File(_photo!.path).readAsBytes();
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) throw Exception('This photo format could not be edited.');
+      img.Image changed;
+      if (operation == 'rotate') {
+        changed = img.copyRotate(decoded, angle: 90);
+      } else if (operation == 'flip') {
+        changed = img.copyFlip(decoded, direction: img.FlipDirection.horizontal);
+      } else {
+        final crop = await showDialog<double>(
+          context: context,
+          builder: (context) => const _PhotoCropDialog(),
+        );
+        if (crop == null) return;
+        final width = (decoded.width * crop).round().clamp(1, decoded.width);
+        final height = (decoded.height * crop).round().clamp(1, decoded.height);
+        changed = img.copyCrop(decoded, x: (decoded.width - width) ~/ 2,
+          y: (decoded.height - height) ~/ 2, width: width, height: height);
+      }
+      final dir = await getTemporaryDirectory();
+      final output = File('${dir.path}/pixelmagic_edit_${DateTime.now().millisecondsSinceEpoch}.jpg');
+      await output.writeAsBytes(img.encodeJpg(changed, quality: 95), flush: true);
+      if (mounted) setState(() { _photo = XFile(output.path); _selected = 0; _intensity = 1; _showOriginal = false; });
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Edit failed: $e')));
+    } finally {
+      if (mounted) setState(() => _transforming = false);
+    }
+  }
 
   Future<void> _choosePhoto() async {
     final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
@@ -122,6 +159,15 @@ class _LocalPhotoEditorScreenState extends State<LocalPhotoEditorScreen> {
             TextButton.icon(onPressed: () => setState(() => _showOriginal = !_showOriginal),
               icon: const Icon(Icons.compare), label: Text(_showOriginal ? 'Show edit' : 'Before')),
           ]),
+          const Text('Crop & Transform', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            OutlinedButton.icon(onPressed: _transforming ? null : () => _applyPhotoTransform('crop'), icon: const Icon(Icons.crop), label: const Text('Crop')),
+            OutlinedButton.icon(onPressed: _transforming ? null : () => _applyPhotoTransform('rotate'), icon: const Icon(Icons.rotate_right), label: const Text('Rotate 90°')),
+            OutlinedButton.icon(onPressed: _transforming ? null : () => _applyPhotoTransform('flip'), icon: const Icon(Icons.flip), label: const Text('Flip')),
+          ]),
+          if (_transforming) const Padding(padding: EdgeInsets.all(8), child: LinearProgressIndicator()),
+          const SizedBox(height: 12),
           Row(children: [
             const Text('Intensity', style: TextStyle(color: Colors.white70)),
             Expanded(child: Slider(value: _intensity, min: 0, max: 1, onChanged: _showOriginal ? null : (v) => setState(() => _intensity = v))),
@@ -390,4 +436,30 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
       floatingActionButton: c == null ? FloatingActionButton.extended(onPressed: _chooseVideo, icon: const Icon(Icons.video_library), label: const Text('Choose video')) : null,
     );
   }
+}
+
+
+class _PhotoCropDialog extends StatefulWidget {
+  const _PhotoCropDialog();
+  @override
+  State<_PhotoCropDialog> createState() => _PhotoCropDialogState();
+}
+
+class _PhotoCropDialogState extends State<_PhotoCropDialog> {
+  double size = 0.8;
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Crop photo'),
+    content: Column(mainAxisSize: MainAxisSize.min, children: [
+      const Text('Choose how much of the centre of the photo to keep.'),
+      Slider(value: size, min: 0.5, max: 1, divisions: 10,
+        label: '${(size * 100).round()}%', onChanged: (v) => setState(() => size = v)),
+      Text('Keep ${(size * 100).round()}% of width and height',
+        style: const TextStyle(color: Colors.white60, fontSize: 12)),
+    ]),
+    actions: [
+      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+      FilledButton(onPressed: () => Navigator.pop(context, size), child: const Text('Apply crop')),
+    ],
+  );
 }

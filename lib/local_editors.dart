@@ -453,13 +453,13 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
     title: const Text('Crop photo'),
     content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
       Text('Width · ${(width * 100).round()}%'),
-      Slider(value: width, min: 0.25, max: 1, divisions: 15, onChanged: (v) => setState(() { width = v; left = left.clamp(0, 1 - width); })),
+      Slider(value: width, min: 0.25, max: 1, divisions: 15, onChanged: (v) => setState(() { width = v; left = left.clamp(0, 1 - width).toDouble(); })),
       Text('Height · ${(height * 100).round()}%'),
-      Slider(value: height, min: 0.25, max: 1, divisions: 15, onChanged: (v) => setState(() { height = v; top = top.clamp(0, 1 - height); })),
+      Slider(value: height, min: 0.25, max: 1, divisions: 15, onChanged: (v) => setState(() { height = v; top = top.clamp(0, 1 - height).toDouble(); })),
       Text('Move crop left / right · ${(left * 100).round()}%'),
-      Slider(value: left.clamp(0, 1 - width), min: 0, max: 1 - width, onChanged: (v) => setState(() => left = v)),
+      Slider(value: left.clamp(0, 1 - width).toDouble(), min: 0, max: 1 - width, onChanged: (v) => setState(() => left = v)),
       Text('Move crop up / down · ${(top * 100).round()}%'),
-      Slider(value: top.clamp(0, 1 - height), min: 0, max: 1 - height, onChanged: (v) => setState(() => top = v)),
+      Slider(value: top.clamp(0, 1 - height).toDouble(), min: 0, max: 1 - height, onChanged: (v) => setState(() => top = v)),
     ])),
     actions: [
       TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),

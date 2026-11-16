@@ -1,0 +1,226 @@
+[
+  {
+    "title": "Sunrise Quote",
+    "category": "Scenery",
+    "sample": "A quiet morning",
+    "colorA": "FF17324D",
+    "colorB": "FFFFB86B"
+  },
+  {
+    "title": "Monsoon Mood",
+    "category": "Scenery",
+    "sample": "Dance in the rain",
+    "colorA": "FF123B55",
+    "colorB": "FF60A5A5"
+  },
+  {
+    "title": "Desert Dusk",
+    "category": "Scenery",
+    "sample": "Find your horizon",
+    "colorA": "FF4A1D32",
+    "colorB": "FFF4A261"
+  },
+  {
+    "title": "Blue Horizon",
+    "category": "Scenery",
+    "sample": "Breathe and begin",
+    "colorA": "FF082F49",
+    "colorB": "FF38BDF8"
+  },
+  {
+    "title": "Royal Wedding",
+    "category": "Occasions",
+    "sample": "Together forever",
+    "colorA": "FF4A1732",
+    "colorB": "FFE8C18A"
+  },
+  {
+    "title": "Engagement Invite",
+    "category": "Occasions",
+    "sample": "Save the date",
+    "colorA": "FF6B214F",
+    "colorB": "FFF6C9D2"
+  },
+  {
+    "title": "Baby Celebration",
+    "category": "Occasions",
+    "sample": "A little wonder",
+    "colorA": "FF315C72",
+    "colorB": "FFFFC6D9"
+  },
+  {
+    "title": "Anniversary Gold",
+    "category": "Occasions",
+    "sample": "Our story continues",
+    "colorA": "FF3B2F2F",
+    "colorB": "FFD6AD60"
+  },
+  {
+    "title": "Navratri Nights",
+    "category": "Festivals",
+    "sample": "शुभ नवरात्रि",
+    "colorA": "FF5B1745",
+    "colorB": "FFFF9F1C"
+  },
+  {
+    "title": "Raksha Bandhan",
+    "category": "Festivals",
+    "sample": "रक्षा बंधन की शुभकामनाएँ",
+    "colorA": "FF702963",
+    "colorB": "FFFFC857"
+  },
+  {
+    "title": "Ganesh Chaturthi",
+    "category": "Festivals",
+    "sample": "गणपति बप्पा मोरया",
+    "colorA": "FF8A3B12",
+    "colorB": "FFFFC857"
+  },
+  {
+    "title": "Independence Day",
+    "category": "Festivals",
+    "sample": "जय हिन्द",
+    "colorA": "FF14532D",
+    "colorB": "FFFF9933"
+  },
+  {
+    "title": "Republic Day",
+    "category": "Festivals",
+    "sample": "गणतंत्र दिवस",
+    "colorA": "FF123B5D",
+    "colorB": "FFFF9933"
+  },
+  {
+    "title": "Eid Greetings",
+    "category": "Festivals",
+    "sample": "Eid Mubarak",
+    "colorA": "FF064E3B",
+    "colorB": "FFB7E4C7"
+  },
+  {
+    "title": "Salon Promotion",
+    "category": "Banners",
+    "sample": "Look your best",
+    "colorA": "FF3B0764",
+    "colorB": "FFF472B6"
+  },
+  {
+    "title": "Restaurant Offer",
+    "category": "Banners",
+    "sample": "Fresh taste every day",
+    "colorA": "FF7C2D12",
+    "colorB": "FFFFC857"
+  },
+  {
+    "title": "Real Estate Ad",
+    "category": "Banners",
+    "sample": "Your dream address",
+    "colorA": "FF102A43",
+    "colorB": "FF4EA5D9"
+  },
+  {
+    "title": "Coaching Class",
+    "category": "Banners",
+    "sample": "Learn. Grow. Succeed.",
+    "colorA": "FF1E3A8A",
+    "colorB": "FF60A5FA"
+  },
+  {
+    "title": "Sale Announcement",
+    "category": "Banners",
+    "sample": "Big savings today",
+    "colorA": "FF7F1D1D",
+    "colorB": "FFF97316"
+  },
+  {
+    "title": "Portfolio Cover",
+    "category": "Banners",
+    "sample": "Creative by nature",
+    "colorA": "FF111827",
+    "colorB": "FF64748B"
+  },
+  {
+    "title": "Gaming Thumbnail",
+    "category": "YouTube",
+    "sample": "LEVEL UP",
+    "colorA": "FF312E81",
+    "colorB": "FF22D3EE"
+  },
+  {
+    "title": "Tech Review",
+    "category": "YouTube",
+    "sample": "HONEST TECH REVIEW",
+    "colorA": "FF172554",
+    "colorB": "FF38BDF8"
+  },
+  {
+    "title": "Travel Vlog",
+    "category": "YouTube",
+    "sample": "EXPLORE WITH ME",
+    "colorA": "FF134E4A",
+    "colorB": "FF2DD4BF"
+  },
+  {
+    "title": "Food Channel",
+    "category": "YouTube",
+    "sample": "TASTE THE WORLD",
+    "colorA": "FF7C2D12",
+    "colorB": "FFFBBF24"
+  },
+  {
+    "title": "Podcast Cover",
+    "category": "YouTube",
+    "sample": "THE BIG CONVERSATION",
+    "colorA": "FF3B0764",
+    "colorB": "FFC084FC"
+  },
+  {
+    "title": "Minimal Monogram",
+    "category": "Logos",
+    "sample": "YOUR INITIALS",
+    "colorA": "FF0F172A",
+    "colorB": "FF94A3B8"
+  },
+  {
+    "title": "Fitness Brand",
+    "category": "Logos",
+    "sample": "STRONGER EVERY DAY",
+    "colorA": "FF14532D",
+    "colorB": "FFA3E635"
+  },
+  {
+    "title": "Beauty Brand",
+    "category": "Logos",
+    "sample": "BEAUTY STUDIO",
+    "colorA": "FF831843",
+    "colorB": "FFF9A8D4"
+  },
+  {
+    "title": "Photography Logo",
+    "category": "Logos",
+    "sample": "CAPTURE MOMENTS",
+    "colorA": "FF164E63",
+    "colorB": "FF67E8F9"
+  },
+  {
+    "title": "Digital Agency",
+    "category": "Logos",
+    "sample": "BUILD THE FUTURE",
+    "colorA": "FF1E1B4B",
+    "colorB": "FF818CF8"
+  },
+  {
+    "title": "Motivational Quote",
+    "category": "Occasions",
+    "sample": "Dream it. Do it.",
+    "colorA": "FF1F2937",
+    "colorB": "FFF59E0B"
+  },
+  {
+    "title": "Study Motivation",
+    "category": "Occasions",
+    "sample": "आज मेहनत, कल सफलता",
+    "colorA": "FF172554",
+    "colorB": "FF93C5FD"
+  }
+]

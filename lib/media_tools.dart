@@ -87,7 +87,7 @@ class _MediaCompressorScreenState extends State<MediaCompressorScreen> {
       const SizedBox(height: 14),
       OutlinedButton.icon(onPressed: busy ? null : () => choose(kind),
         icon: Icon(kind == 'photo' ? Icons.add_photo_alternate : Icons.video_library),
-        label: Text(source == null ? 'Choose ${kind == 'photo' ? 'photo' : 'video'}' : 'Choose another ${kind}')),
+        label: Text(source == null ? 'Choose ${kind == 'photo' ? 'photo' : 'video'}' : 'Choose another $kind')),
       if (source != null) ...[
         const SizedBox(height: 10),
         Text('Original size: ${_sizeLabel(source!.lengthSync())}', style: const TextStyle(color: _toolAccent)),

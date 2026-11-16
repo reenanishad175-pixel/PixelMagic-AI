@@ -14,6 +14,7 @@ import 'local_downloads.dart';
 import 'local_video_engine.dart';
 import 'local_background_remover.dart';
 import 'pixelmagic_ai_studio.dart';
+import 'design_studio.dart';
 
 const _gold = Color(0xFFFFD479);
 const _panel = Color(0xFF111F2B);
@@ -180,6 +181,23 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
       if(mounted) setState(()=>saving=false);
     }
   }
+  Future<void> exportSocialSize() async {
+    if (photo == null || saving) return;
+    setState(() => saving = true);
+    try {
+      final path = await exportPreviewAtSocialSize(context: context, previewKey: previewKey);
+      if (path != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Exported social image: ${path.split(Platform.pathSeparator).last}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
   Widget control(String name,double value,double min,double max,ValueChanged<double> update) => Column(crossAxisAlignment: CrossAxisAlignment.start,children:[
     Row(children:[Expanded(child:Text(name)),Text(value.toStringAsFixed(2),style:const TextStyle(color:_gold))]),
     Slider(value:value,min:min,max:max,onChanged:original?null:(v)=>setState(() { update(v); preset='Custom'; }))
@@ -243,6 +261,8 @@ class _ProPhotoEditorScreenState extends State<ProPhotoEditorScreen> {
           OutlinedButton.icon(onPressed:()=>setState(() { rotation=0; flip=false; }),icon:const Icon(Icons.restart_alt),label:const Text('Reset')),
         ]),
         FilledButton.icon(onPressed:saving?null:save,icon:const Icon(Icons.high_quality),label:Text(saving?'Exporting…':'Export PNG')),
+       OutlinedButton.icon(onPressed:saving?null:exportSocialSize,icon:const Icon(Icons.aspect_ratio),label:const Text('Download in Facebook / Instagram / WhatsApp / YouTube size')),
+       OutlinedButton.icon(onPressed:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const LogoWallpaperStudio())),icon:const Icon(Icons.wallpaper),label:const Text('Open Wallpaper & Banner Templates Studio  •  PRO')),
         OutlinedButton.icon(onPressed:choose,icon:const Icon(Icons.photo_library),label:const Text('Change photo')),
       ],
       const SizedBox(height:18),

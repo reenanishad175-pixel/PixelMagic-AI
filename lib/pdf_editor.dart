@@ -117,10 +117,12 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
           height: 842,
         ));
       }
-      if (mounted) setState(() {
-        if (pages.isNotEmpty) currentPage = pages.length - 1;
-        status = 'Added ${selected.length} photo page(s).';
-      });
+      if (mounted) {
+        setState(() {
+          if (pages.isNotEmpty) currentPage = pages.length - 1;
+          status = 'Added ${selected.length} photo page(s).';
+        });
+      }
     } catch (e) {
       if (mounted) setState(() => error = 'Could not add photos: $e');
     } finally {
@@ -181,10 +183,12 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
       )),
     );
     textController.dispose(); sizeController.dispose(); xController.dispose(); yController.dispose();
-    if (result != null && mounted) setState(() {
-      pages[currentPage].overlays.add(result);
-      status = 'Text layer added to page ${currentPage + 1}.';
-    });
+    if (result != null && mounted) {
+      setState(() {
+        pages[currentPage].overlays.add(result);
+        status = 'Text layer added to page ${currentPage + 1}.';
+      });
+    }
   }
 
   Future<void> addImage() async {

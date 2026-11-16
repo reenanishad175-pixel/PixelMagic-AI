@@ -19,6 +19,7 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
   final ImagePicker picker = ImagePicker();
   XFile? sourcePhoto;
   late String task;
+  int videoDuration = 5;
   bool busy = false;
   bool saving = false;
   String? error, imageUrl, stage, videoUrl;
@@ -84,6 +85,9 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
         'prompt': prompt.text.trim(),
         'action': 'submit',
       };
+      if (task == 'video' || task == 'image_to_video') {
+        requestBody['duration'] = videoDuration.toString();
+      }
       if (task == 'image_to_video') {
         final user = Supabase.instance.client.auth.currentUser;
         if (user == null) throw Exception('Please sign in again before generating a video.');
@@ -206,6 +210,21 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
             borderRadius: BorderRadius.circular(14),
             child: Image.file(File(sourcePhoto!.path), height: 220, fit: BoxFit.contain),
           ),
+      ],
+      if (task == 'video' || task == 'image_to_video') ...[
+        const SizedBox(height: 14),
+        const Text('Video duration', style: TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        SegmentedButton<int>(
+          segments: const [
+            ButtonSegment(value: 5, label: Text('5 sec')),
+            ButtonSegment(value: 10, label: Text('10 sec')),
+          ],
+          selected: {videoDuration},
+          onSelectionChanged: busy ? null : (values) => setState(() => videoDuration = values.first),
+        ),
+        const SizedBox(height: 8),
+        const Text('Longer durations are not supported by the current Kling 2.1 Standard endpoint.', style: TextStyle(color: Colors.white54, fontSize: 11)),
       ],
       const SizedBox(height: 14),
       TextField(

@@ -169,6 +169,27 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
   double _trimStart = 0;
   double _trimEnd = 0;
   String _filter = 'Original';
+  String? _backgroundPath;
+
+  Future<void> _chooseBackground() async {
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'mp4', 'mov', 'm4v'],
+    );
+    final path = picked?.files.single.path;
+    if (path != null && mounted) setState(() => _backgroundPath = path);
+  }
+
+  Future<void> _applyChromaKey() async {
+    if (_backgroundPath == null) {
+      await _chooseBackground();
+      if (_backgroundPath == null) return;
+    }
+    await _perform(
+      (input) => LocalVideoEngine.chromaKeyBackground(input: input, background: _backgroundPath!),
+      'Green-screen background replaced and video saved. Use a solid green-screen source.',
+    );
+  }
 
   Future<void> _chooseVideo() async {
     final file = await _picker.pickVideo(source: ImageSource.gallery);
@@ -319,6 +340,48 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
           FilledButton.tonalIcon(onPressed: _editing ? null : _addMusic, icon: const Icon(Icons.music_note), label: const Text('Add music from phone')),
           FilledButton.tonalIcon(onPressed: _editing ? null : _addText, icon: const Icon(Icons.text_fields), label: const Text('Add text overlay')),
           FilledButton.tonalIcon(onPressed: _editing ? null : _merge, icon: const Icon(Icons.call_merge), label: const Text('Merge with another video')),
+          const SizedBox(height: 14),
+          const Text('Motion & Animation', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            FilledButton.tonalIcon(
+              onPressed: _editing ? null : () => _perform(
+                (input) => LocalVideoEngine.fade(
+                  input: input,
+                  durationSeconds: duration.inMilliseconds / 1000,
+                ),
+                'Fade-in and fade-out animation applied and saved.',
+              ),
+              icon: const Icon(Icons.animation), label: const Text('Fade animation'),
+            ),
+            FilledButton.tonalIcon(
+              onPressed: _editing ? null : () => _perform(
+                (input) => LocalVideoEngine.reverse(input: input),
+                'Reverse motion applied and saved.',
+              ),
+              icon: const Icon(Icons.replay), label: const Text('Reverse motion'),
+            ),
+            FilledButton.tonalIcon(
+              onPressed: _editing ? null : () => _perform(
+                (input) => LocalVideoEngine.applyFilter(input: input, filter: 'Slow Motion'),
+                'Slow-motion effect applied and saved.',
+              ),
+              icon: const Icon(Icons.slow_motion_video), label: const Text('Slow motion'),
+            ),
+          ]),
+          const SizedBox(height: 14),
+          const Text('Green Screen · Chroma Key', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          const Text('Remove a solid green screen and place your own photo or video behind the subject.', style: TextStyle(color: Colors.white60, fontSize: 12)),
+          OutlinedButton.icon(
+            onPressed: _editing ? null : _chooseBackground,
+            icon: const Icon(Icons.wallpaper),
+            label: Text(_backgroundPath == null ? 'Choose replacement background' : 'Change replacement background'),
+          ),
+          FilledButton.tonalIcon(
+            onPressed: _editing || _backgroundPath == null ? null : _applyChromaKey,
+            icon: const Icon(Icons.layers),
+            label: const Text('Replace green background'),
+          ),
         ],
         if (_editing) const Padding(padding: EdgeInsets.symmetric(vertical: 14), child: Center(child: CircularProgressIndicator())),
         if (_status != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(_status!, style: const TextStyle(color: _accent))),

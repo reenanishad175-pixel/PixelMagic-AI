@@ -28,29 +28,12 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
   Uint8List? geminiImageBytes;
   String? geminiStatus;
   VideoPlayerController? video;
-  String? apiStatus;
 
   @override
   void initState() {
     super.initState();
     task = widget.initialTask;
-    checkApi();
     checkGemini();
-  }
-
-  Future<void> checkApi() async {
-    try {
-      final response = await Supabase.instance.client.functions.invoke('fal-key-check');
-      final data = response.data;
-      if (response.status == 200 && data is Map && data['configured'] == true) {
-        if (mounted) setState(() => apiStatus = 'AI API connected — server key is available.');
-      } else {
-        final message = data is Map ? (data['message'] ?? data['error'] ?? 'API key is not configured.') : 'API key is not configured.';
-        if (mounted) setState(() => apiStatus = message.toString());
-      }
-    } catch (e) {
-      if (mounted) setState(() => apiStatus = 'API check failed: $e');
-    }
   }
 
   Future<void> checkGemini() async {
@@ -58,9 +41,9 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
       final response = await Supabase.instance.client.functions.invoke('pixelmagic-ai', body: {'action': 'gemini_check'});
       final data = response.data;
       if (mounted) { setState(() => geminiStatus = response.status == 200 && data is Map && data['configured'] == true
-          ? 'Gemini API connected' : 'Gemini API key is not available on server'); }
+          ? 'Gemini API connected' : 'Gemini API key is missing from this Supabase project. Check the secret name and project.'); }
     } catch (_) {
-      if (mounted) setState(() => geminiStatus = 'Gemini API check failed');
+      if (mounted) setState(() => geminiStatus = 'Gemini server check failed. Please try again.');
     }
   }
 
@@ -209,6 +192,21 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
     }
   }
 
+  Widget _taskChip(String value, String label, IconData icon) => ChoiceChip(
+    avatar: Icon(icon, size: 18),
+    label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+    selected: task == value,
+    onSelected: busy ? null : (_) => setState(() {
+      task = value;
+      imageUrl = null;
+      videoUrl = null;
+      geminiImageBytes = null;
+      error = null;
+      video?.dispose();
+      video = null;
+    }),
+  );
+
   @override
   void dispose() { prompt.dispose(); video?.dispose(); super.dispose(); }
   @override
@@ -219,12 +217,16 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
       const SizedBox(height: 8),
       const Text('Describe your idea and let PixelMagic create it with AI.'),
       const SizedBox(height: 18),
-      SegmentedButton<String>(segments: const [
-        ButtonSegment(value: 'image', label: Text('AI Image'), icon: Icon(Icons.image)),
-        ButtonSegment(value: 'gemini_image', label: Text('Gemini Image'), icon: Icon(Icons.auto_awesome)),
-        ButtonSegment(value: 'video', label: Text('AI Reels'), icon: Icon(Icons.movie)),
-        ButtonSegment(value: 'image_to_video', label: Text('Photo to Video'), icon: Icon(Icons.motion_photos_auto)),
-      ], selected: {task}, onSelectionChanged: busy ? null : (v) => setState(() { task = v.first; imageUrl = null; videoUrl = null; geminiImageBytes = null; video?.dispose(); video = null; })),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          _taskChip('image', 'AI Image (FAL)', Icons.image_outlined),
+          _taskChip('gemini_image', 'Gemini AI Image', Icons.auto_awesome),
+          _taskChip('video', 'AI Reel (Text to Video)', Icons.movie_outlined),
+          _taskChip('image_to_video', 'Animate a Photo', Icons.motion_photos_auto),
+        ],
+      ),
       if (task == 'image_to_video') ...[
         const SizedBox(height: 14),
         OutlinedButton.icon(
@@ -285,8 +287,9 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
         onPressed: busy ? null : generate,
         icon: const Icon(Icons.auto_awesome),
         label: Text(busy ? 'Generating…'
-            : task == 'image' ? 'Generate image'
-            : task == 'image_to_video' ? 'Animate this photo'
+            : task == 'image' ? 'Generate AI Image'
+            : task == 'gemini_image' ? 'Generate Gemini Image'
+            : task == 'image_to_video' ? 'Animate Photo to Video'
             : 'Generate AI Reel'),
       ),
       if (busy) ...[const SizedBox(height: 16), const LinearProgressIndicator(), if (stage != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(stage!))],
@@ -295,7 +298,6 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
       if (imageUrl != null) ...[const SizedBox(height: 18), ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.network(imageUrl!, errorBuilder: (_, __, ___) => const Text('Could not load generated image.'))), FilledButton.icon(onPressed: saving ? null : saveResult, icon: const Icon(Icons.download), label: Text(saving ? 'Saving…' : 'Save image to Downloads')), SelectableText(imageUrl!, style: const TextStyle(fontSize: 11))],
       if (video != null && video!.value.isInitialized) ...[const SizedBox(height: 18), AspectRatio(aspectRatio: video!.value.aspectRatio, child: VideoPlayer(video!)), FilledButton.tonalIcon(onPressed: () => setState(() => video!.value.isPlaying ? video!.pause() : video!.play()), icon: Icon(video!.value.isPlaying ? Icons.pause : Icons.play_arrow), label: const Text('Play / Pause')), FilledButton.icon(onPressed: saving ? null : saveResult, icon: const Icon(Icons.download), label: Text(saving ? 'Saving…' : 'Save video to Downloads'))],
       if (geminiStatus != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(geminiStatus!, style: TextStyle(fontSize: 12, color: geminiStatus == 'Gemini API connected' ? Colors.greenAccent : Colors.orangeAccent))),
-      if (apiStatus != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(apiStatus!, style: TextStyle(fontSize: 12, color: apiStatus!.startsWith('AI API connected') ? Colors.greenAccent : Colors.orangeAccent))),
       const SizedBox(height: 14),
       const Text('Gemini and FAL AI generations may have provider usage limits or charges.', style: TextStyle(color: Colors.white54, fontSize: 12)),
     ]),

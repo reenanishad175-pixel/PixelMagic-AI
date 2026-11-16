@@ -261,12 +261,17 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
     );
   }
 
-  Future<void> _chooseVideo() async {
+  Future<bool> _selectVideoExportSettings() async {
     final settings = await showVideoExportSettingsDialog(context);
-    if (settings == null || !mounted) return;
+    if (settings == null || !mounted) return false;
+    setState(() => _videoExportSettings = settings);
+    return true;
+  }
+
+  Future<void> _chooseVideo() async {
+    if (!await _selectVideoExportSettings() || !mounted) return;
     final file = await _picker.pickVideo(source: ImageSource.gallery);
     if (file == null) return;
-    setState(() => _videoExportSettings = settings);
     await _loadVideo(file.path);
   }
 
@@ -406,7 +411,7 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
               leading: const Icon(Icons.aspect_ratio, color: _accent),
               title: Text('Export: ${_videoExportSettings!.label}'),
               subtitle: Text('${_videoExportSettings!.width} × ${_videoExportSettings!.height} px · ${_videoExportSettings!.fitMode.toUpperCase()}'),
-              trailing: TextButton(onPressed: _editing ? null : _chooseVideo, child: const Text('Change')),
+              trailing: TextButton(onPressed: _editing ? null : _selectVideoExportSettings, child: const Text('Change')),
             ),
           const SizedBox(height: 12),
           const Text('Trim / Cut', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),

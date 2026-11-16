@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdfx/pdfx.dart' as pdfx;
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:printing/printing.dart';
 
 import 'local_downloads.dart';
@@ -59,6 +60,8 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
   String? sourceName;
   String? status;
   String? error;
+  final List<TextLine> detectedLines = <TextLine>[];
+  final TextRecognizer _textRecognizer = TextRecognizer(script: TextRecognitionScript.devanagiri);
 
   Future<void> openPdf() async {
     final picked = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
@@ -99,6 +102,61 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
       await document?.close();
       if (mounted) setState(() => busy = false);
     }
+  }
+
+
+  Future<void> scanCurrentPageWithOcr() async {
+    if (pages.isEmpty || busy) return;
+    setState(() { busy = true; error = null; status = 'Recognizing text on this page…'; detectedLines.clear(); });
+    try {
+      final temp = await getTemporaryDirectory();
+      final file = File('${temp.path}/pixelmagic_ocr_${DateTime.now().microsecondsSinceEpoch}.png');
+      await file.writeAsBytes(pages[currentPage].bytes, flush: true);
+      final result = await _textRecognizer.processImage(InputImage.fromFilePath(file.path));
+      if (!mounted) return;
+      setState(() {
+        detectedLines.addAll(result.blocks.expand((block) => block.lines));
+        status = 'OCR found ${detectedLines.length} text line(s). Tap a line to edit it.';
+      });
+      await file.delete();
+    } catch (e) {
+      if (mounted) setState(() => error = 'On-device OCR failed: $e');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> addRecognizedLine(TextLine line) async {
+    if (pages.isEmpty) return;
+    final controller = TextEditingController(text: line.text);
+    final decoded = img.decodeImage(pages[currentPage].bytes);
+    if (decoded == null) { controller.dispose(); return; }
+    final box = line.boundingBox;
+    final x = (box.left / decoded.width).clamp(0.0, 0.95);
+    final y = (box.top / decoded.height).clamp(0.0, 0.95);
+    final w = (box.width / decoded.width).clamp(0.05, 1.0 - x);
+    final h = (box.height / decoded.height).clamp(0.025, 1.0 - y);
+    final replacement = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit recognized text'),
+        content: TextField(controller: controller, maxLines: 4, autofocus: true),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('Use text')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (replacement == null || replacement.isEmpty || !mounted) return;
+    setState(() {
+      pages[currentPage].overlays.add(_PdfOverlay(
+        text: replacement, x: x, y: y, width: w, height: h,
+        fontSize: (box.height * pages[currentPage].width / decoded.width * .78).clamp(7, 42),
+        whiteout: true,
+      ));
+      status = 'Editable replacement layer added. Check alignment before exporting.';
+    });
   }
 
   Future<void> addPhotoPages() async {
@@ -371,6 +429,12 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
   }
 
   @override
+  void dispose() {
+    _textRecognizer.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final page = pages.isEmpty ? null : pages[currentPage];
     return Scaffold(
@@ -431,10 +495,17 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
           Wrap(spacing: 8, runSpacing: 8, children: [
             OutlinedButton.icon(onPressed: addText, icon: const Icon(Icons.text_fields), label: const Text('Add / replace text')),
             OutlinedButton.icon(onPressed: addImage, icon: const Icon(Icons.image), label: const Text('Add image / logo')),
+          OutlinedButton.icon(onPressed: busy ? null : scanCurrentPageWithOcr, icon: const Icon(Icons.document_scanner), label: const Text('Scan text (OCR')),
             OutlinedButton.icon(onPressed: () => movePage(-1), icon: const Icon(Icons.arrow_upward), label: const Text('Move page up')),
             OutlinedButton.icon(onPressed: () => movePage(1), icon: const Icon(Icons.arrow_downward), label: const Text('Move page down')),
             OutlinedButton.icon(onPressed: deletePage, icon: const Icon(Icons.delete_outline), label: const Text('Delete page')),
           ]),
+          if (detectedLines.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            const Text('OCR text found · tap to edit and cover the original', style: TextStyle(fontWeight: FontWeight.bold)),
+            for (final line in detectedLines)
+              ListTile(dense: true, leading: const Icon(Icons.text_snippet_outlined), title: Text(line.text, maxLines: 2, overflow: TextOverflow.ellipsis), subtitle: Text('Detected at ${line.boundingBox.left.round()}, ${line.boundingBox.top.round()}'), onTap: () => addRecognizedLine(line)),
+          ],
           if (page.overlays.isNotEmpty) ...[
             const SizedBox(height: 10),
             const Text('Layers on this page', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -459,7 +530,7 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
         if (status != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(status!, style: const TextStyle(color: Color(0xFF55DCCB)))),
         if (error != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(error!, style: const TextStyle(color: Colors.redAccent))),
         const SizedBox(height: 12),
-        const Text('Note: existing PDF pages are rendered as page images before editing. Text can be visually covered/replaced and new text/images added, but original text is not retained as selectable text. OCR for scanned PDFs is not included yet.', style: TextStyle(color: Colors.white54, fontSize: 11)),
+        const Text('Note: on-device OCR detects text lines and lets you create replacement layers. The source page remains a raster image; review alignment carefully. Hindi OCR and PDF font rendering must be tested on sample documents. Cloud OCR fallback is not configured yet.', style: TextStyle(color: Colors.white54, fontSize: 11)),
       ]),
       floatingActionButton: pages.isEmpty ? FloatingActionButton.extended(onPressed: busy ? null : openPdf, icon: const Icon(Icons.picture_as_pdf), label: const Text('Open PDF')) : null,
     );

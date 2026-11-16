@@ -308,7 +308,7 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
     await prefs.setString('pixelmagic_pro_video_project',jsonEncode({
       'path':c.dataSource,'start':start,'end':end,'speed':speed,'volume':volume,
       'brightness':gradeBrightness,'contrast':gradeContrast,'saturation':gradeSaturation,
-      'crop':cropFraction,'filter':filter,'exportHeight':exportHeight,'exportFps':exportFps,'exportBitrate':exportBitrate,
+      'crop':cropFraction,'filter':filter,'exportHeight':exportHeight,'exportFps':exportFps,'exportBitrate':exportBitrate,'socialWidth':videoExportSettings?.width,'socialHeight':videoExportSettings?.height,'socialLabel':videoExportSettings?.label,'socialFit':videoExportSettings?.fitMode,
     }));
     if(mounted){setState(()=>hasSavedProject=true);ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('PRO editing project saved on this device.')));}
   }
@@ -333,10 +333,26 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
         exportHeight=(data['exportHeight'] as int?)??1080;
         exportFps=(data['exportFps'] as int?)??30;
         exportBitrate=(data['exportBitrate'] as int?)??8;
+        final sw = data['socialWidth'] as int?;
+        final sh = data['socialHeight'] as int?;
+        if (sw != null && sh != null) {
+          videoExportSettings = VideoExportSettings(
+            width: sw, height: sh,
+            label: (data['socialLabel'] as String?) ?? 'Custom size',
+            fitMode: (data['socialFit'] as String?) ?? 'fill',
+          );
+        }
       });
     }catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not restore saved project.')));}
   }
-  Future<void> choose() async { final p=await picker.pickVideo(source:ImageSource.gallery); if(p!=null) await load(p.path); }
+  Future<void> choose() async {
+    final settings = await showVideoExportSettingsDialog(context);
+    if (settings == null || !mounted) return;
+    final p = await picker.pickVideo(source: ImageSource.gallery);
+    if (p == null || !mounted) return;
+    setState(() => videoExportSettings = settings);
+    await load(p.path);
+  }
   Future<void> load(String path) async {
     setState(()=>busy=true); await controller?.dispose();
     final c=VideoPlayerController.file(File(path));
@@ -346,7 +362,20 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
   Future<void> run(Future<String> Function(String) task,String done) async {
     final c=controller; if(c==null||busy)return;
     setState(() { busy=true; error=null; status='Processing on this device…'; });
-    try { await c.pause(); final output=await task(c.dataSource); await load(output); if(mounted)setState(()=>status=done); try{await Gal.requestAccess();await Gal.putVideo(output);}catch(_){} }
+    try {
+      await c.pause();
+      final edited = await task(c.dataSource);
+      final settings = videoExportSettings;
+      final output = settings == null ? edited : await LocalVideoEngine.exportForSocial(
+        input: edited,
+        width: settings.width,
+        height: settings.height,
+        fitMode: settings.fitMode,
+      );
+      await load(output);
+      if(mounted)setState(()=>status=done);
+      try{await Gal.requestAccess();await Gal.putVideo(output);}catch(_){}
+    }
     catch(e){if(mounted)setState(()=>error=e.toString().replaceFirst('Exception: ',''));}
     finally{if(mounted)setState(()=>busy=false);}
   }
@@ -380,6 +409,13 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
         ClipRRect(borderRadius:BorderRadius.circular(14),child:AspectRatio(aspectRatio:c.value.aspectRatio,child:VideoPlayer(c))),
         Row(children:[IconButton.filled(onPressed:busy?null:()=>setState(()=>c.value.isPlaying?c.pause():c.play()),icon:Icon(c.value.isPlaying?Icons.pause:Icons.play_arrow)),Expanded(child:VideoProgressIndicator(c,allowScrubbing:!busy,padding:const EdgeInsets.all(12))),Text(time(c.value.position)+' / '+time(duration),style:const TextStyle(fontSize:10))]),
         OutlinedButton.icon(onPressed:busy?null:choose,icon:const Icon(Icons.video_file),label:const Text('Choose another video')),
+        if(videoExportSettings!=null) ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.aspect_ratio,color:_gold),
+          title: Text('Export: ${videoExportSettings!.label}'),
+          subtitle: Text('${videoExportSettings!.width} × ${videoExportSettings!.height} px · ${videoExportSettings!.fitMode.toUpperCase()}'),
+          trailing: TextButton(onPressed:busy?null:choose,child:const Text('Change')),
+        ),
         OutlinedButton.icon(onPressed:busy?null:_saveProject,icon:const Icon(Icons.save),label:const Text('Save editing project')),
         if(hasSavedProject) TextButton.icon(onPressed:busy?null:_resumeProject,icon:const Icon(Icons.restore),label:const Text('Resume last saved project')),
         const Text('01 · Timeline & Clip Editing',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),

@@ -86,7 +86,7 @@ class _LocalPhotoEditorScreenState extends State<LocalPhotoEditorScreen> {
           context: context,
           builder: (context) => const _PhotoCropDialog(),
         );
-        if (crop == null) return;
+        if (!mounted || crop == null) return;
         final width = (decoded.width * crop.width).round().clamp(1, decoded.width);
         final height = (decoded.height * crop.height).round().clamp(1, decoded.height);
         final x = (decoded.width * crop.left).round().clamp(0, decoded.width - width);

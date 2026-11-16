@@ -224,7 +224,7 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
         ButtonSegment(value: 'gemini_image', label: Text('Gemini Image'), icon: Icon(Icons.auto_awesome)),
         ButtonSegment(value: 'video', label: Text('AI Reels'), icon: Icon(Icons.movie)),
         ButtonSegment(value: 'image_to_video', label: Text('Photo to Video'), icon: Icon(Icons.motion_photos_auto)),
-      ], selected: {task}, onSelectionChanged: busy ? null : (v) => setState(() { task = v.first; imageUrl = null; videoUrl = null; video?.dispose(); video = null; })),
+      ], selected: {task}, onSelectionChanged: busy ? null : (v) => setState(() { task = v.first; imageUrl = null; videoUrl = null; geminiImageBytes = null; video?.dispose(); video = null; })),
       if (task == 'image_to_video') ...[
         const SizedBox(height: 14),
         OutlinedButton.icon(

@@ -82,15 +82,16 @@ class _LocalPhotoEditorScreenState extends State<LocalPhotoEditorScreen> {
       } else if (operation == 'flip') {
         changed = img.copyFlip(decoded, direction: img.FlipDirection.horizontal);
       } else {
-        final crop = await showDialog<double>(
+        final crop = await showDialog<Rect>(
           context: context,
           builder: (context) => const _PhotoCropDialog(),
         );
         if (crop == null) return;
-        final width = (decoded.width * crop).round().clamp(1, decoded.width);
-        final height = (decoded.height * crop).round().clamp(1, decoded.height);
-        changed = img.copyCrop(decoded, x: (decoded.width - width) ~/ 2,
-          y: (decoded.height - height) ~/ 2, width: width, height: height);
+        final width = (decoded.width * crop.width).round().clamp(1, decoded.width);
+        final height = (decoded.height * crop.height).round().clamp(1, decoded.height);
+        final x = (decoded.width * crop.left).round().clamp(0, decoded.width - width);
+        final y = (decoded.height * crop.top).round().clamp(0, decoded.height - height);
+        changed = img.copyCrop(decoded, x: x, y: y, width: width, height: height);
       }
       final dir = await getTemporaryDirectory();
       final output = File('${dir.path}/pixelmagic_edit_${DateTime.now().millisecondsSinceEpoch}.jpg');
@@ -446,20 +447,23 @@ class _PhotoCropDialog extends StatefulWidget {
 }
 
 class _PhotoCropDialogState extends State<_PhotoCropDialog> {
-  double size = 0.8;
+  double width = 0.85, height = 0.85, left = 0.075, top = 0.075;
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: const Text('Crop photo'),
-    content: Column(mainAxisSize: MainAxisSize.min, children: [
-      const Text('Choose how much of the centre of the photo to keep.'),
-      Slider(value: size, min: 0.5, max: 1, divisions: 10,
-        label: '${(size * 100).round()}%', onChanged: (v) => setState(() => size = v)),
-      Text('Keep ${(size * 100).round()}% of width and height',
-        style: const TextStyle(color: Colors.white60, fontSize: 12)),
-    ]),
+    content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+      Text('Width · ${(width * 100).round()}%'),
+      Slider(value: width, min: 0.25, max: 1, divisions: 15, onChanged: (v) => setState(() { width = v; left = left.clamp(0, 1 - width); })),
+      Text('Height · ${(height * 100).round()}%'),
+      Slider(value: height, min: 0.25, max: 1, divisions: 15, onChanged: (v) => setState(() { height = v; top = top.clamp(0, 1 - height); })),
+      Text('Move crop left / right · ${(left * 100).round()}%'),
+      Slider(value: left.clamp(0, 1 - width), min: 0, max: 1 - width, onChanged: (v) => setState(() => left = v)),
+      Text('Move crop up / down · ${(top * 100).round()}%'),
+      Slider(value: top.clamp(0, 1 - height), min: 0, max: 1 - height, onChanged: (v) => setState(() => top = v)),
+    ])),
     actions: [
       TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-      FilledButton(onPressed: () => Navigator.pop(context, size), child: const Text('Apply crop')),
+      FilledButton(onPressed: () => Navigator.pop(context, Rect.fromLTWH(left, top, width, height)), child: const Text('Apply crop')),
     ],
   );
 }

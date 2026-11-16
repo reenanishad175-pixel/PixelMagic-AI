@@ -126,7 +126,13 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
       }
       if (mounted) setState(() => stage = 'Generation complete');
     } catch (e) {
-      if (mounted) setState(() => error = e.toString().replaceFirst('Exception: ', ''));
+      final message = e.toString().replaceFirst('Exception: ', '');
+      final lowerMessage = message.toLowerCase();
+      final friendlyMessage = lowerMessage.contains('exhausted balance') ||
+              lowerMessage.contains('user is locked')
+          ? 'FAL AI balance is exhausted. Please top up your FAL account at fal.ai/dashboard/billing, then try again.'
+          : message;
+      if (mounted) setState(() => error = friendlyMessage);
     } finally {
       if (inputObjectPath != null) {
         try {

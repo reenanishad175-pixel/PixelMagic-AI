@@ -57,33 +57,22 @@ class PixelMagicLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mark = Container(
-      width: size, height: size,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(size * 0.28),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF25D7C5), Color(0xFF126A78), Color(0xFF172B47)],
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-        ),
-        border: Border.all(color: const Color(0xFF8AF1E3).withOpacity(0.45), width: 1.2),
-        boxShadow: [BoxShadow(color: const Color(0xFF19C9B6).withOpacity(0.22), blurRadius: size * 0.24, spreadRadius: 1)],
+    final mark = ClipRRect(
+      borderRadius: BorderRadius.circular(size * 0.22),
+      child: Image.asset(
+        'assets/pixelmagic_logo.jpg',
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        filterQuality: FilterQuality.high,
       ),
-      child: Stack(alignment: Alignment.center, children: [
-        Icon(Icons.auto_awesome_rounded, size: size * 0.56, color: const Color(0xFFFFD98A)),
-        Positioned(right: size * 0.15, bottom: size * 0.16,
-          child: Container(width: size * 0.13, height: size * 0.13,
-            decoration: BoxDecoration(color: const Color(0xFFFFD98A), borderRadius: BorderRadius.circular(size * 0.035)))),
-        Positioned(left: size * 0.16, top: size * 0.17,
-          child: Container(width: size * 0.09, height: size * 0.09,
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(size * 0.025)))),
-      ]),
     );
     if (!wordmark) return mark;
     return Row(mainAxisSize: MainAxisSize.min, children: [
       mark,
       const SizedBox(width: 14),
       const Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-        Text('PixelMagic', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, letterSpacing: -0.8)),
+        Text('PixelMagic AI', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, letterSpacing: -0.8)),
         Text('AI CREATIVE STUDIO', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 2.0, color: Color(0xFF55DCCB))),
       ]),
     ]);
@@ -743,8 +732,11 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                const CircleAvatar(radius: 25, backgroundColor: Color(0xFF153E43),
-                    child: Icon(Icons.person, color: Color(0xFF55DCCB), size: 28)),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset('assets/pixelmagic_logo.jpg',
+                      width: 50, height: 50, fit: BoxFit.cover),
+                ),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(displayName, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),

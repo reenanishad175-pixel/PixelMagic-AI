@@ -79,6 +79,8 @@ jobs:
           PY
       - name: Install dependencies
         run: flutter pub get
+      - name: Generate Android launcher icon
+        run: dart run flutter_launcher_icons
       - name: Align file_picker Android compile SDK
         run: |
           python3 - <<'PY'

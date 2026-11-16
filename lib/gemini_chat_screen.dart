@@ -38,19 +38,26 @@ class _GeminiChatScreenState extends State<GeminiChatScreen> {
 
   Future<void> _toggleListening() async {
     if (busy) return;
+    final localeId = Localizations.localeOf(context).languageCode == 'hi'
+        ? 'hi_IN'
+        : 'en_IN';
     if (speech.isListening) {
       await speech.stop();
       if (mounted) setState(() => listening = false);
       return;
     }
-    if (!speechAvailable) await _initSpeech();
     if (!speechAvailable) {
-      if (mounted) setState(() => error = 'Voice input is unavailable. Please enable a speech recognition service or Google app microphone permission.');
+      await _initSpeech();
+    }
+    if (!speechAvailable) {
+      if (mounted) {
+        setState(() => error = 'Voice input is unavailable. Please enable a speech recognition service or Google app microphone permission.');
+      }
       return;
     }
     if (mounted) setState(() => error = null);
     await speech.listen(
-      localeId: Localizations.localeOf(context).languageCode == 'hi' ? 'hi_IN' : 'en_IN',
+      localeId: localeId,
       listenFor: const Duration(minutes: 1),
       pauseFor: const Duration(seconds: 4),
       onResult: (result) {

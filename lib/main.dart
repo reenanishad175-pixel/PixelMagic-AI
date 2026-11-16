@@ -10,6 +10,7 @@ import 'pro_editors.dart';
 import 'local_downloads.dart';
 import 'local_background_remover.dart';
 import 'pixelmagic_ai_studio.dart';
+import 'media_tools.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const supabaseUrl = 'https://lmpvwgzpyprsqxcxecss.supabase.co';
@@ -401,7 +402,6 @@ const features = [
   Feature('Video Editor', 'Trim, music, text, filters and merge', Icons.video_camera_back),
   Feature('PRO Photo Editor', 'Advanced photo editing studio', Icons.workspace_premium, needsPhoto: false),
   Feature('PRO Video Editor', 'Professional video production tools', Icons.movie_filter, needsPhoto: false),
-  Feature('Background Remover', 'Remove a person’s background offline', Icons.layers_clear),
 ];
 
 class CreativeHeroBanner extends StatelessWidget {
@@ -644,9 +644,39 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       const SizedBox(height: 18),
-      const Center(child: Text('More creative features are being added.', style: TextStyle(color: Colors.white38, fontSize: 11))),
+      _utilityBar(context, 'Background Remover', 'Remove photo background', Icons.layers_clear,
+        () => const BackgroundRemoverScreen()),
+      const SizedBox(height: 8),
+      _utilityBar(context, 'Photo & Video Compressor', 'Reduce MB size of photos and videos', Icons.compress,
+        () => const MediaCompressorScreen()),
+      const SizedBox(height: 8),
+      _utilityBar(context, 'PDF Editor & Photo to PDF', 'Create PDF from photos or open an existing PDF', Icons.picture_as_pdf,
+        () => const PdfToolsScreen()),
     ],
   );
+
+
+  Widget _utilityBar(BuildContext context, String title, String subtitle, IconData icon, Widget Function() page) =>
+    Material(
+      color: const Color(0xFF111F2B),
+      borderRadius: BorderRadius.circular(13),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(13),
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => page())),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          child: Row(children: [
+            Icon(icon, color: const Color(0xFF55DCCB), size: 23),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+            ])),
+            const Icon(Icons.chevron_right, color: Colors.white54, size: 20),
+          ]),
+        ),
+      ),
+    );
 
   Future<void> _editDisplayName() async {
     final controller = TextEditingController(

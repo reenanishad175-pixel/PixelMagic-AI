@@ -652,8 +652,14 @@ class _HomeScreenState extends State<HomeScreen> {
       _utilityBar(context, 'Photo & Video Compressor', 'Reduce MB size of photos and videos', Icons.compress,
         () => const MediaCompressorScreen()),
       const SizedBox(height: 8),
-      _utilityBar(context, 'PDF Editor & Photo to PDF', 'Create PDF from photos or open an existing PDF', Icons.picture_as_pdf,
+      _proUtilityBar(context, 'PRO PDF Editor & Photo to PDF', 'Create PDFs, add / replace text, images and manage pages', Icons.picture_as_pdf,
         () => const ProPdfEditorScreen()),
+      const SizedBox(height: 8),
+      _proUtilityBar(context, 'PRO Logo & YouTube Design Studio', 'Logos, thumbnails, channel profile and banners', Icons.design_services,
+        () => const LogoWallpaperStudio()),
+      const SizedBox(height: 8),
+      _proUtilityBar(context, 'PRO Wallpaper & Banner Templates', 'Festivals, scenery, famous places and campaign designs', Icons.wallpaper,
+        () => const LogoWallpaperStudio()),
     ],
   );
 

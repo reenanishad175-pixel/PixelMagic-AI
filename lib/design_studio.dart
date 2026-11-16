@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:io';
+import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -231,6 +232,55 @@ class _LogoWallpaperStudioState extends State<LogoWallpaperStudio> {
   bool campaignMode = false;
   int width = 1080, height = 1080;
   bool exporting = false;
+  bool onlineLoading = false;
+  int onlineTemplateCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    loadOnlineTemplates();
+  }
+
+  Future<void> loadOnlineTemplates() async {
+    if (onlineLoading) return;
+    setState(() => onlineLoading = true);
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 12);
+    try {
+      final request = await client.getUrl(Uri.parse('https://raw.githubusercontent.com/reenanishad175-pixel/PixelMagic-AI/main/assets/wallpaper_templates.json'));
+      final response = await request.close();
+      if (response.statusCode != 200) throw HttpException('Template server returned ${response.statusCode}.');
+      final raw = await response.transform(utf8.decoder).join();
+      final rows = jsonDecode(raw) as List<dynamic>;
+      const categoryIcons = <String, IconData>{
+        'Festivals': Icons.celebration, 'Occasions': Icons.card_giftcard,
+        'Scenery': Icons.landscape, 'Famous Places': Icons.account_balance,
+        'Campaign': Icons.campaign, 'Banners': Icons.storefront,
+        'YouTube': Icons.ondemand_video, 'Logos': Icons.auto_awesome,
+      };
+      final additions = rows.map((row) {
+        final item = row as Map<String, dynamic>;
+        return DesignTemplate(
+          item['title'] as String,
+          item['category'] as String,
+          categoryIcons[item['category']] ?? Icons.auto_awesome,
+          [Color(int.parse(item['colorA'] as String, radix: 16)), Color(int.parse(item['colorB'] as String, radix: 16))],
+          item['sample'] as String,
+        );
+      }).toList();
+      if (!mounted) return;
+      setState(() {
+        final existing = _templates.map((item) => item.title).toSet();
+        final fresh = additions.where((item) => !existing.contains(item.title)).toList();
+        _templates.addAll(fresh);
+        onlineTemplateCount = fresh.length;
+      });
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Online templates unavailable. Offline templates are ready. $e')));
+    } finally {
+      client.close(force: true);
+      if (mounted) setState(() => onlineLoading = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -281,7 +331,11 @@ class _LogoWallpaperStudioState extends State<LogoWallpaperStudio> {
     return Scaffold(
       appBar: AppBar(title: const Text('Wallpaper & Banner Design Studio  •  PRO')),
       body: ListView(padding: const EdgeInsets.all(16), children: [
-        Text('Choose a ready-made design · ${_templates.length} templates', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
+        Text('Ready-made designs · ${_templates.length} templates', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
+        Row(children: [
+          Expanded(child: Text(onlineLoading ? 'Checking online library…' : '$onlineTemplateCount new online templates loaded · Offline starter designs work without internet', style: const TextStyle(color: Colors.white60, fontSize: 11))),
+          IconButton(tooltip: 'Refresh online templates', onPressed: onlineLoading ? null : loadOnlineTemplates, icon: const Icon(Icons.refresh)),
+        ]),
         const SizedBox(height: 8),
         SizedBox(height: 42, child: ListView(scrollDirection: Axis.horizontal, children: [
           for (final c in categories) Padding(padding: const EdgeInsets.only(right: 7), child: ChoiceChip(label: Text(c), selected: category == c, onSelected: (_) => setState(() => category = c))),

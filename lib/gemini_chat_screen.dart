@@ -61,12 +61,14 @@ class _GeminiChatScreenState extends State<GeminiChatScreen> {
       listenFor: const Duration(minutes: 1),
       pauseFor: const Duration(seconds: 4),
       onResult: (result) {
-        if (mounted) setState(() {
-          input.value = TextEditingValue(
-            text: result.recognizedWords,
-            selection: TextSelection.collapsed(offset: result.recognizedWords.length),
-          );
-        });
+        if (mounted) {
+          setState(() {
+            input.value = TextEditingValue(
+              text: result.recognizedWords,
+              selection: TextSelection.collapsed(offset: result.recognizedWords.length),
+            );
+          });
+        }
       },
     );
     if (mounted) setState(() => listening = speech.isListening);

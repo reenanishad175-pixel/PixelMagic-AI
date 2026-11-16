@@ -211,7 +211,7 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
   void dispose() { prompt.dispose(); video?.dispose(); super.dispose(); }
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('AI Creative Studio')),
+    appBar: AppBar(title: Text(widget.initialTask == 'gemini_image' ? 'Gemini AI Image Generator' : 'AI Creative Studio')),
     body: ListView(padding: const EdgeInsets.all(18), children: [
       const Text('Create with AI', style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold)),
       const SizedBox(height: 8),
@@ -220,15 +220,17 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
       SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: [
-            _taskChip('image', 'FAL AI Image', Icons.image_outlined),
-            const SizedBox(width: 8),
-            _taskChip('gemini_image', 'Gemini Image', Icons.auto_awesome),
-            const SizedBox(width: 8),
-            _taskChip('video', 'Text to AI Reel', Icons.movie_outlined),
-            const SizedBox(width: 8),
-            _taskChip('image_to_video', 'Animate Photo', Icons.motion_photos_auto),
-          ],
+          children: widget.initialTask == 'gemini_image'
+              ? [
+                  _taskChip('gemini_image', 'Gemini Image Generator', Icons.auto_awesome),
+                ]
+              : [
+                  _taskChip('image', 'FAL AI Image', Icons.image_outlined),
+                  const SizedBox(width: 8),
+                  _taskChip('video', 'Text to AI Reel', Icons.movie_outlined),
+                  const SizedBox(width: 8),
+                  _taskChip('image_to_video', 'Animate Photo (Upload File)', Icons.motion_photos_auto),
+                ],
         ),
       ),
       if (task == 'image_to_video') ...[

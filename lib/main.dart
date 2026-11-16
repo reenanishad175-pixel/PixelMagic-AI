@@ -396,14 +396,12 @@ class Feature {
 }
 
 const features = [
-  Feature('AI Photo', 'Turn a text idea into an image', Icons.auto_awesome, needsPhoto: false),
+  Feature('AI Creative Studio', 'AI Image, AI Reels and Photo to Video in one place', Icons.auto_awesome, needsPhoto: false),
   Feature('Photo Editing', '20+ filters, preview and save', Icons.tune),
   Feature('Video Editor', 'Trim, music, text, filters and merge', Icons.video_camera_back),
   Feature('PRO Photo Editor', 'Advanced photo editing studio', Icons.workspace_premium, needsPhoto: false),
   Feature('PRO Video Editor', 'Professional video production tools', Icons.movie_filter, needsPhoto: false),
   Feature('Background Remover', 'Remove a person’s background offline', Icons.layers_clear),
-  Feature('Photo to Video', 'Animate a photo into a video with AI', Icons.movie),
-  Feature('AI Reels', 'Plan a short vertical video', Icons.smart_display, needsPhoto: false),
 ];
 
 class CreativeHeroBanner extends StatelessWidget {
@@ -612,19 +610,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   return;
                 }
                 await Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => feature.title == 'AI Photo'
-                      ? const PixelMagicAiStudio(initialTask: 'image')
-                      : feature.title == 'AI Reels'
-                          ? const PixelMagicAiStudio(initialTask: 'video')
-                          : feature.title == 'Photo to Video'
-                              ? const PixelMagicAiStudio(initialTask: 'image_to_video')
-                              : feature.title == 'Photo Editing'
-                              ? const LocalPhotoEditorScreen()
-                              : feature.title == 'Video Editor'
-                                  ? const LocalVideoEditorScreen()
-                                  : feature.title == 'Background Remover'
-                                      ? const BackgroundRemoverScreen()
-                                      : FeatureScreen(feature: feature),
+                  builder: (_) => feature.title == 'AI Creative Studio'
+                      ? const PixelMagicAiStudio()
+                      : feature.title == 'Photo Editing'
+                          ? const LocalPhotoEditorScreen()
+                          : feature.title == 'Video Editor'
+                              ? const LocalVideoEditorScreen()
+                              : feature.title == 'Background Remover'
+                                  ? const BackgroundRemoverScreen()
+                                  : FeatureScreen(feature: feature),
                 ));
               },
               child: Padding(

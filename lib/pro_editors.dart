@@ -345,12 +345,16 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
       });
     }catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not restore saved project.')));}
   }
-  Future<void> choose() async {
+  Future<bool> selectVideoExportSettings() async {
     final settings = await showVideoExportSettingsDialog(context);
-    if (settings == null || !mounted) return;
+    if (settings == null || !mounted) return false;
+    setState(() => videoExportSettings = settings);
+    return true;
+  }
+  Future<void> choose() async {
+    if (!await selectVideoExportSettings() || !mounted) return;
     final p = await picker.pickVideo(source: ImageSource.gallery);
     if (p == null || !mounted) return;
-    setState(() => videoExportSettings = settings);
     await load(p.path);
   }
   Future<void> load(String path) async {

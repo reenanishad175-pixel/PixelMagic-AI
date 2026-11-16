@@ -83,6 +83,7 @@ class _LocalPhotoEditorScreenState extends State<LocalPhotoEditorScreen> {
       } else if (operation == 'flip') {
         changed = img.copyFlip(decoded, direction: img.FlipDirection.horizontal);
       } else {
+        if (!mounted) return;
         final crop = await showDialog<Rect>(
           context: context,
           builder: (context) => const _PhotoCropDialog(),

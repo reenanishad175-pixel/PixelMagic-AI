@@ -57,8 +57,8 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
     try {
       final response = await Supabase.instance.client.functions.invoke('pixelmagic-ai', body: {'action': 'gemini_check'});
       final data = response.data;
-      if (mounted) setState(() => geminiStatus = response.status == 200 && data is Map && data['configured'] == true
-          ? 'Gemini API connected' : 'Gemini API key is not available on server');
+      if (mounted) { setState(() => geminiStatus = response.status == 200 && data is Map && data['configured'] == true
+          ? 'Gemini API connected' : 'Gemini API key is not available on server'); }
     } catch (_) {
       if (mounted) setState(() => geminiStatus = 'Gemini API check failed');
     }

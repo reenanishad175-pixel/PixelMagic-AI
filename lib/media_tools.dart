@@ -136,6 +136,7 @@ class _PdfToolsScreenState extends State<PdfToolsScreen> {
     setState(() { busy = true; error = null; status = null; });
     try {
       final doc = pw.Document();
+      var pageCount = 0;
       for (final image in images) {
         final bytes = await File(image.path).readAsBytes();
         final decoded = img.decodeImage(bytes);
@@ -144,8 +145,9 @@ class _PdfToolsScreenState extends State<PdfToolsScreen> {
         final memory = pw.MemoryImage(jpg);
         doc.addPage(pw.Page(pageFormat: PdfPageFormat.a4, margin: const pw.EdgeInsets.all(20),
           build: (_) => pw.Center(child: pw.Image(memory, fit: pw.BoxFit.contain))));
+        pageCount++;
       }
-      if (doc.document.pdfPageList.pages.isEmpty) throw Exception('No usable photos were selected.');
+      if (pageCount == 0) throw Exception('No usable photos were selected.');
       final bytes = await doc.save();
       final dir = await getApplicationDocumentsDirectory();
       final folder = Directory('${dir.path}/PixelMagicDownloads');

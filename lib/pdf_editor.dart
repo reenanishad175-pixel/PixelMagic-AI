@@ -191,6 +191,77 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
     }
   }
 
+  Future<void> editLayer(int index) async {
+    if (pages.isEmpty || index < 0 || index >= pages[currentPage].overlays.length) return;
+    final original = pages[currentPage].overlays[index];
+    final textController = TextEditingController(text: original.text ?? '');
+    final xController = TextEditingController(text: (original.x * 100).round().toString());
+    final yController = TextEditingController(text: (original.y * 100).round().toString());
+    final widthController = TextEditingController(text: (original.width * 100).round().toString());
+    final heightController = TextEditingController(text: (original.height * 100).round().toString());
+    final sizeController = TextEditingController(text: original.fontSize.round().toString());
+    var color = original.color;
+    var whiteout = original.whiteout;
+    var font = original.font;
+    final edited = await showDialog<_PdfOverlay>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setLocal) => AlertDialog(
+        title: const Text('Edit text / image layer'),
+        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          if (original.text != null)
+            TextField(controller: textController, maxLines: 3, decoration: const InputDecoration(labelText: 'Edit layer text')),
+          Row(children: [
+            Expanded(child: TextField(controller: xController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Left %'))),
+            const SizedBox(width: 8),
+            Expanded(child: TextField(controller: yController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Top %'))),
+          ]),
+          Row(children: [
+            Expanded(child: TextField(controller: widthController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Width %'))),
+            const SizedBox(width: 8),
+            Expanded(child: TextField(controller: heightController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Height %'))),
+          ]),
+          if (original.text != null) ...[
+            TextField(controller: sizeController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Font size')),
+            DropdownButtonFormField<String>(value: font, decoration: const InputDecoration(labelText: 'Font'), items: const [
+              DropdownMenuItem(value: 'Helvetica', child: Text('Helvetica')),
+              DropdownMenuItem(value: 'Times', child: Text('Times')),
+              DropdownMenuItem(value: 'Courier', child: Text('Courier')),
+            ], onChanged: (v) => setLocal(() => font = v ?? 'Helvetica')),
+            Wrap(spacing: 4, children: [
+              for (final item in [Colors.black, Colors.blue, Colors.red, Colors.green, Colors.white, Colors.yellow])
+                IconButton(onPressed: () => setLocal(() => color = item), icon: Icon(Icons.circle, color: item, size: 21)),
+            ]),
+            SwitchListTile(contentPadding: EdgeInsets.zero, value: whiteout, onChanged: (v) => setLocal(() => whiteout = v), title: const Text('Cover text underneath')),
+          ],
+        ])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(onPressed: () {
+            final x = ((double.tryParse(xController.text) ?? 12).clamp(0, 95)) / 100;
+            final y = ((double.tryParse(yController.text) ?? 12).clamp(0, 95)) / 100;
+            final w = ((double.tryParse(widthController.text) ?? 45).clamp(5, 100)) / 100;
+            final h = ((double.tryParse(heightController.text) ?? 16).clamp(3, 100)) / 100;
+            final value = original.text == null ? null : textController.text.trim();
+            if (original.text != null && (value == null || value.isEmpty)) return;
+            Navigator.pop(ctx, _PdfOverlay(
+              text: value, imageBytes: original.imageBytes, x: x, y: y, width: w, height: h,
+              fontSize: (double.tryParse(sizeController.text) ?? 18).clamp(6, 96),
+              color: color, whiteout: whiteout, font: font,
+            ));
+          }, child: const Text('Save layer')),
+        ],
+      )),
+    );
+    textController.dispose(); xController.dispose(); yController.dispose();
+    widthController.dispose(); heightController.dispose(); sizeController.dispose();
+    if (edited != null && mounted) {
+      setState(() {
+        pages[currentPage].overlays[index] = edited;
+        status = 'Layer updated.';
+      });
+    }
+  }
+
   Future<void> addImage() async {
     if (pages.isEmpty) return;
     final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 95);
@@ -264,7 +335,7 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
               left: overlay.x * page.width,
               top: overlay.y * page.height,
               child: pw.SizedBox(
-                width: page.width * .82,
+                width: page.width * overlay.width,
                 child: pw.Text(
                 overlay.text!,
                 style: pw.TextStyle(font: font, fontSize: overlay.fontSize, color: PdfColor(
@@ -342,8 +413,8 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
                         left: overlay.x * constraints.maxWidth,
                         top: overlay.y * constraints.maxHeight,
                         child: Container(
-                          width: overlay.whiteout ? overlay.width * constraints.maxWidth : constraints.maxWidth * .82,
-                          height: overlay.whiteout ? overlay.height * constraints.maxHeight : null,
+                          width: overlay.width * constraints.maxWidth,
+                          height: overlay.height * constraints.maxHeight,
                           color: overlay.whiteout ? Colors.white : Colors.transparent,
                           padding: overlay.whiteout ? const EdgeInsets.all(4) : EdgeInsets.zero,
                           child: Text(
@@ -367,11 +438,17 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
           if (page.overlays.isNotEmpty) ...[
             const SizedBox(height: 10),
             const Text('Layers on this page', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('Tap a layer to edit its text, position, size, font or color.', style: TextStyle(color: Colors.white54, fontSize: 11)),
             for (var i = 0; i < page.overlays.length; i++)
               ListTile(
                 dense: true,
                 title: Text(page.overlays[i].text ?? 'Image / logo layer'),
-                trailing: IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => setState(() => page.overlays.removeAt(i))),
+                subtitle: Text('Position ${(page.overlays[i].x * 100).round()}%, ${(page.overlays[i].y * 100).round()}% · ${(page.overlays[i].width * 100).round()} × ${(page.overlays[i].height * 100).round()}%'),
+                onTap: () => editLayer(i),
+                trailing: Wrap(mainAxisSize: MainAxisSize.min, children: [
+                  IconButton(tooltip: 'Edit layer', icon: const Icon(Icons.edit), onPressed: () => editLayer(i)),
+                  IconButton(tooltip: 'Delete layer', icon: const Icon(Icons.delete_outline), onPressed: () => setState(() => page.overlays.removeAt(i))),
+                ]),
               ),
           ],
           const SizedBox(height: 12),

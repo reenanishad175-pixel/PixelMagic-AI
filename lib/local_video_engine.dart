@@ -209,8 +209,9 @@ class LocalVideoEngine {
   }) async {
     if (crf < 20 || crf > 40) throw ArgumentError('Compression quality out of range.');
     final output = await _outputPath('PixelMagic_Compressed');
+    final quantizer = ((crf - 20) * 0.9 + 2).round().clamp(2, 20);
     final command = '-y -i ' + _quote(input) +
-      ' -c:v libx264 -preset veryfast -crf $crf -c:a aac -b:a 96k -movflags +faststart ' + _quote(output);
+      ' -c:v mpeg4 -q:v $quantizer -c:a aac -b:a 96k -movflags +faststart ' + _quote(output);
     return _run(command, output, 'Video compression');
   }
 

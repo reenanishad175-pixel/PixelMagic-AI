@@ -15,6 +15,7 @@ import 'local_video_engine.dart';
 import 'local_background_remover.dart';
 import 'pixelmagic_ai_studio.dart';
 import 'design_studio.dart';
+import 'video_export_options.dart';
 
 const _gold = Color(0xFFFFD479);
 const _panel = Color(0xFF111F2B);
@@ -293,6 +294,7 @@ class _ProVideoEditorScreenState extends State<ProVideoEditorScreen> {
   double start=0,end=0,speed=1,volume=1,gradeBrightness=0,gradeContrast=1,gradeSaturation=1,cropFraction=.85;
   int exportHeight=1080, exportFps=30, exportBitrate=8;
   String filter='Original';
+  VideoExportSettings? videoExportSettings;
   bool hasSavedProject=false;
   @override
   void initState(){super.initState();_checkSavedProject();}

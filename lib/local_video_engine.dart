@@ -202,6 +202,18 @@ class LocalVideoEngine {
         _quote(output), output, 'Video crop');
   }
 
+
+  static Future<String> compressVideo({
+    required String input,
+    int crf = 30,
+  }) async {
+    if (crf < 20 || crf > 40) throw ArgumentError('Compression quality out of range.');
+    final output = await _outputPath('PixelMagic_Compressed');
+    final command = '-y -i ' + _quote(input) +
+      ' -c:v libx264 -preset veryfast -crf $crf -c:a aac -b:a 96k -movflags +faststart ' + _quote(output);
+    return _run(command, output, 'Video compression');
+  }
+
   static Future<String> exportResolution({
     required String input,
     required int height,

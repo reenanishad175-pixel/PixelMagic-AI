@@ -158,7 +158,8 @@ class DesignTemplate {
   const DesignTemplate(this.title, this.category, this.icon, this.colors, this.sample);
 }
 
-const _templates = <DesignTemplate>[
+final _templates = <DesignTemplate>[
+
   DesignTemplate('Diwali Glow', 'Festivals', Icons.light_mode, [Color(0xFF30104B), Color(0xFFF39B27)], 'शुभ दीपावली'),
   DesignTemplate('Holi Splash', 'Festivals', Icons.palette, [Color(0xFFEF476F), Color(0xFF118AB2)], 'होली की शुभकामनाएँ'),
   DesignTemplate('Eid Mubarak', 'Festivals', Icons.nightlight_round, [Color(0xFF063B3B), Color(0xFF16A085)], 'Eid Mubarak'),
@@ -180,6 +181,30 @@ const _templates = <DesignTemplate>[
   DesignTemplate('YouTube Channel Banner', 'YouTube', Icons.panorama, [Color(0xFF312E81), Color(0xFF0891B2)], 'Subscribe Now'),
   DesignTemplate('Minimal Logo', 'Logos', Icons.auto_awesome, [Color(0xFF0F172A), Color(0xFF334155)], 'BRAND NAME'),
   DesignTemplate('Creator Brand', 'Logos', Icons.stars, [Color(0xFF4C1D95), Color(0xFFBE185D)], 'CREATOR'),
+
+  ...List<DesignTemplate>.generate(160, (index) {
+    const categories = ['Festivals', 'Occasions', 'Scenery', 'Famous Places', 'Campaign', 'Banners', 'YouTube', 'Logos'];
+    const styles = ['Royal', 'Modern', 'Minimal', 'Vibrant', 'Classic', 'Luxury', 'Nature', 'Neon', 'Elegant', 'Bold', 'Festive', 'Creative', 'Premium', 'Gradient', 'Studio', 'Heritage'];
+    const palettes = [
+      [Color(0xFF14213D), Color(0xFFFCA311)],
+      [Color(0xFF3A0CA3), Color(0xFFF72585)],
+      [Color(0xFF006D77), Color(0xFF83C5BE)],
+      [Color(0xFF7F1D1D), Color(0xFFF59E0B)],
+      [Color(0xFF1D3557), Color(0xFF457B9D)],
+      [Color(0xFF14532D), Color(0xFF84CC16)],
+      [Color(0xFF312E81), Color(0xFF22D3EE)],
+      [Color(0xFF581C87), Color(0xFFF0ABFC)],
+      [Color(0xFF111827), Color(0xFF64748B)],
+      [Color(0xFF831843), Color(0xFFF9A8D4)],
+    ];
+    const icons = [Icons.auto_awesome, Icons.celebration, Icons.landscape, Icons.account_balance, Icons.campaign, Icons.storefront, Icons.ondemand_video, Icons.palette];
+    const samples = ['शुभकामनाएँ', 'आपका खास दिन', 'Explore & Dream', 'Incredible India', 'आपका समर्थन, हमारा संकल्प', 'आपका ब्रांड', 'New Video', 'YOUR BRAND'];
+    final categoryIndex = index % categories.length;
+    final category = categories[categoryIndex];
+    final title = '${styles[index % styles.length]} ${category == 'Famous Places' ? 'Travel' : category} ${(index + 1).toString().padLeft(3, '0')}';
+    final palette = palettes[(index * 3 + index ~/ 7) % palettes.length];
+    return DesignTemplate(title, category, icons[categoryIndex], palette, samples[categoryIndex]);
+  }),
 ];
 
 class LogoWallpaperStudio extends StatefulWidget {
@@ -256,7 +281,7 @@ class _LogoWallpaperStudioState extends State<LogoWallpaperStudio> {
     return Scaffold(
       appBar: AppBar(title: const Text('Wallpaper & Banner Design Studio  •  PRO')),
       body: ListView(padding: const EdgeInsets.all(16), children: [
-        const Text('Choose a ready-made design', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
+        Text('Choose a ready-made design · ${_templates.length} templates', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         SizedBox(height: 42, child: ListView(scrollDirection: Axis.horizontal, children: [
           for (final c in categories) Padding(padding: const EdgeInsets.only(right: 7), child: ChoiceChip(label: Text(c), selected: category == c, onSelected: (_) => setState(() => category = c))),
@@ -398,7 +423,7 @@ class _LogoWallpaperStudioState extends State<LogoWallpaperStudio> {
           TextField(controller: symbol, decoration: const InputDecoration(labelText: 'Election symbol / mark'), onChanged: (_) => setState(() {})),
         ],
         Row(children: [
-          Expanded(child: OutlinedButton.icon(onPressed: chooseBackground, icon: const Icon(Icons.wallpaper), label: const Text('Choose background photo'))),
+          Expanded(child: OutlinedButton.icon(onPressed: chooseBackground, icon: const Icon(Icons.wallpaper), label: const Text('Upload custom background from gallery'))),
           const SizedBox(width: 8),
           Expanded(child: OutlinedButton.icon(onPressed: choosePortrait, icon: const Icon(Icons.person), label: const Text('Add portrait / logo'))),
         ]),

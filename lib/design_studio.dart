@@ -12,7 +12,6 @@ import 'package:gal/gal.dart';
 import 'local_downloads.dart';
 
 const _studioAccent = Color(0xFF55DCCB);
-const _studioPanel = Color(0xFF111F2B);
 
 class SocialExportPreset {
   final String name;
@@ -241,7 +240,7 @@ class _LogoWallpaperStudioState extends State<LogoWallpaperStudio> {
       final path = await LocalDownloads.saveImageBytes(img.encodePng(resized));
       await Gal.requestAccess();
       await Gal.putImage(path);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Design saved to Gallery: ${width}×${height}')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Design saved to Gallery: $width×$height')));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
     } finally {
@@ -285,7 +284,20 @@ class _LogoWallpaperStudioState extends State<LogoWallpaperStudio> {
         const SizedBox(height: 12),
         Row(children: [
           const Expanded(child: Text('Live design preview', style: TextStyle(fontWeight: FontWeight.bold))),
-          DropdownButton<int>(value: width, items: const [1080, 1280, 1920, 2560, 800].map((v) => DropdownMenuItem(value: v, child: Text('$v px wide'))).toList(), onChanged: (v) => setState(() { width = v ?? 1080; if (width == 1280) height = 720; else if (width == 2560) height = 1440; else if (width == 800) height = 800; else if (width == 1920) height = 1080; else height = 1080; })),
+          DropdownButton<int>(value: width, items: const [1080, 1280, 1920, 2560, 800].map((v) => DropdownMenuItem(value: v, child: Text('$v px wide'))).toList(), onChanged: (v) => setState(() {
+            width = v ?? 1080;
+            if (width == 1280) {
+              height = 720;
+            } else if (width == 2560) {
+              height = 1440;
+            } else if (width == 800) {
+              height = 800;
+            } else if (width == 1920) {
+              height = 1080;
+            } else {
+              height = 1080;
+            }
+          })),
         ]),
         Center(
           child: RepaintBoundary(

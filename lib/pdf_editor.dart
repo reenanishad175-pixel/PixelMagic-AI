@@ -445,7 +445,7 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
                 title: Text(page.overlays[i].text ?? 'Image / logo layer'),
                 subtitle: Text('Position ${(page.overlays[i].x * 100).round()}%, ${(page.overlays[i].y * 100).round()}% · ${(page.overlays[i].width * 100).round()} × ${(page.overlays[i].height * 100).round()}%'),
                 onTap: () => editLayer(i),
-                trailing: Wrap(mainAxisSize: MainAxisSize.min, children: [
+                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                   IconButton(tooltip: 'Edit layer', icon: const Icon(Icons.edit), onPressed: () => editLayer(i)),
                   IconButton(tooltip: 'Delete layer', icon: const Icon(Icons.delete_outline), onPressed: () => setState(() => page.overlays.removeAt(i))),
                 ]),

@@ -402,7 +402,7 @@ const features = [
   Feature('PRO Photo Editor', 'Advanced photo editing studio', Icons.workspace_premium, needsPhoto: false),
   Feature('PRO Video Editor', 'Professional video production tools', Icons.movie_filter, needsPhoto: false),
   Feature('Background Remover', 'Remove a person’s background offline', Icons.layers_clear),
-  Feature('Photo to Video', 'Prepare a photo for animation', Icons.movie),
+  Feature('Photo to Video', 'Animate a photo into a video with AI', Icons.movie),
   Feature('AI Reels', 'Plan a short vertical video', Icons.smart_display, needsPhoto: false),
 ];
 
@@ -616,7 +616,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? const PixelMagicAiStudio(initialTask: 'image')
                       : feature.title == 'AI Reels'
                           ? const PixelMagicAiStudio(initialTask: 'video')
-                          : feature.title == 'Photo Editing'
+                          : feature.title == 'Photo to Video'
+                              ? const PixelMagicAiStudio(initialTask: 'image_to_video')
+                              : feature.title == 'Photo Editing'
                               ? const LocalPhotoEditorScreen()
                               : feature.title == 'Video Editor'
                                   ? const LocalVideoEditorScreen()

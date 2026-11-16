@@ -11,6 +11,7 @@ import 'local_downloads.dart';
 import 'local_background_remover.dart';
 import 'pixelmagic_ai_studio.dart';
 import 'media_tools.dart';
+import 'design_studio.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const supabaseUrl = 'https://lmpvwgzpyprsqxcxecss.supabase.co';
@@ -670,6 +671,66 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+            ])),
+            const Icon(Icons.chevron_right, color: Colors.white54, size: 20),
+          ]),
+        ),
+      ),
+    );
+
+  Future<void> _openProUtility(Widget Function() page) async {
+    var allowed = false;
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        final row = await Supabase.instance.client.from('subscriptions')
+            .select('plan_code,status,current_period_end')
+            .eq('user_id', user.id)
+            .order('created_at', ascending: false)
+            .limit(1).maybeSingle();
+        final plan = (row?['plan_code'] ?? '').toString().toLowerCase();
+        final status = (row?['status'] ?? '').toString().toLowerCase();
+        final end = DateTime.tryParse((row?['current_period_end'] ?? '').toString());
+        allowed = status == 'active' &&
+            (plan == 'lifetime' || (plan == 'monthly' && end != null && end.isAfter(DateTime.now().toUtc())));
+      }
+    } catch (_) {
+      allowed = false;
+    }
+    if (!mounted) return;
+    if (!allowed) {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('PRO subscription required'),
+          content: const Text('This tool is included with Monthly Pro or Lifetime Pro.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Not now')),
+            FilledButton(onPressed: () { Navigator.pop(dialogContext); setState(() => selectedTab = 2); },
+              child: const Text('View subscription')),
+          ],
+        ),
+      );
+      return;
+    }
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => page()));
+  }
+
+  Widget _proUtilityBar(BuildContext context, String title, String subtitle, IconData icon, Widget Function() page) =>
+    Material(
+      color: const Color(0xFF171A2A),
+      borderRadius: BorderRadius.circular(13),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(13),
+        onTap: () => _openProUtility(page),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          child: Row(children: [
+            Icon(icon, color: const Color(0xFFFFD479), size: 23),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))), const Text('PRO', style: TextStyle(color: Color(0xFFFFD479), fontSize: 9, fontWeight: FontWeight.w900))]),
               Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 10)),
             ])),
             const Icon(Icons.chevron_right, color: Colors.white54, size: 20),

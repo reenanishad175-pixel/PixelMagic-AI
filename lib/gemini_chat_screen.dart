@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -26,9 +28,9 @@ class _GeminiChatScreenState extends State<GeminiChatScreen> {
       final raw = prefs.getString(storageKey);
       if (raw != null) {
         final decoded = jsonDecode(raw);
-        if (decoded is List) messages.addAll(decoded.whereType<Map>().map((m) => {
+        if (decoded is List) { messages.addAll(decoded.whereType<Map>().map((m) => {
           'role': (m['role'] ?? 'user').toString(), 'text': (m['text'] ?? '').toString(),
-        }));
+        })); }
       }
     } catch (_) {}
     if (mounted) setState(() => loading = false);
@@ -42,8 +44,8 @@ class _GeminiChatScreenState extends State<GeminiChatScreen> {
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (scroll.hasClients) scroll.animateTo(scroll.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+      if (scroll.hasClients) { scroll.animateTo(scroll.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250), curve: Curves.easeOut); }
     });
   }
 
@@ -100,8 +102,8 @@ class _GeminiChatScreenState extends State<GeminiChatScreen> {
         ))) : ListView.builder(controller: scroll, padding: const EdgeInsets.all(14),
           itemCount: messages.length + (busy ? 1 : 0),
           itemBuilder: (context, index) {
-            if (index == messages.length) return const Align(alignment: Alignment.centerLeft, child: Padding(
-              padding: EdgeInsets.all(12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))));
+            if (index == messages.length) { return const Align(alignment: Alignment.centerLeft, child: Padding(
+              padding: EdgeInsets.all(12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))); }
             final item = messages[index];
             final user = item['role'] == 'user';
             return Align(alignment: user ? Alignment.centerRight : Alignment.centerLeft, child: Container(

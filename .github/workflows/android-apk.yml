@@ -63,6 +63,20 @@ jobs:
               s = s[:pos] + block + s[pos:]
               p.write_text(s)
           PY
+      - name: Add Android microphone permission for voice chat
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
+          permission = '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\\n'
+          if "android.permission.RECORD_AUDIO" not in s:
+              pos = s.find("<application")
+              if pos < 0:
+                  raise SystemExit("Application tag not found in AndroidManifest.xml")
+              s = s[:pos] + permission + s[pos:]
+              p.write_text(s)
+          PY
       - name: Install dependencies
         run: flutter pub get
       - name: Align file_picker Android compile SDK

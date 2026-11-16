@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:gal/gal.dart';
@@ -286,20 +287,95 @@ class _LogoWallpaperStudioState extends State<LogoWallpaperStudio> {
           const Expanded(child: Text('Live design preview', style: TextStyle(fontWeight: FontWeight.bold))),
           DropdownButton<int>(value: width, items: const [1080, 1280, 1920, 2560, 800].map((v) => DropdownMenuItem(value: v, child: Text('$v px wide'))).toList(), onChanged: (v) => setState(() { width = v ?? 1080; if (width == 1280) height = 720; else if (width == 2560) height = 1440; else if (width == 800) height = 800; else if (width == 1920) height = 1080; else height = 1080; })),
         ]),
-        Center(child: RepaintBoundary(key: previewKey, child: SizedBox(width: 360, child: AspectRatio(aspectRatio: ratio, child: ClipRRect(borderRadius: BorderRadius.circular(14), child: Stack(fit: StackFit.expand, children: [
-          if (backgroundPhoto != null) Image.file(backgroundPhoto!, fit: BoxFit.cover)
-          else DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(colors: selected.colors, begin: Alignment.topLeft, end: Alignment.bottomRight))),
-          if (backgroundPhoto == null) Positioned(right: -25, top: -20, child: Icon(selected.icon, size: 180, color: Colors.white.withOpacity(.12))),
-          if (portraitPhoto != null) Positioned(left: 12, top: 12, bottom: 12, width: 104, child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(portraitPhoto!, fit: BoxFit.cover))),
-          Positioned(left: 16, right: 16, top: MediaQuery.of(context).size.width > 500 ? 18 : 12, child: Text(selected.title.toUpperCase(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.w900, color: Colors.white70))),
-          Positioned(left: 16, right: 16, top: MediaQuery.of(context).size.height * (textPosition * .35), child: Column(children: [
-            Text(campaignMode ? candidate.text : heading.text, textAlign: TextAlign.center, style: TextStyle(color: textColor, fontSize: textSize, fontWeight: FontWeight.w900, shadows: const [Shadow(color: Colors.black87, blurRadius: 8)])),
-            const SizedBox(height: 7),
-            Text(campaignMode ? party.text : subheading.text, textAlign: TextAlign.center, style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w600, shadows: const [Shadow(color: Colors.black87, blurRadius: 7)])),
-            if (campaignMode) Text(symbol.text, style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 13)),
-          ])),
-          if (campaignMode) const Positioned(bottom: 12, left: 12, right: 12, child: Text('जनता की आवाज़ • विकास का संकल्प', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))),
-        ]))))),
+        Center(
+          child: RepaintBoundary(
+            key: previewKey,
+            child: SizedBox(
+              width: 360,
+              child: AspectRatio(
+                aspectRatio: ratio,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (backgroundPhoto != null)
+                        Image.file(backgroundPhoto!, fit: BoxFit.cover)
+                      else
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: selected.colors,
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                        ),
+                      if (backgroundPhoto == null)
+                        Positioned(
+                          right: -25,
+                          top: -20,
+                          child: Icon(selected.icon, size: 180, color: Colors.white.withOpacity(.12)),
+                        ),
+                      if (portraitPhoto != null)
+                        Positioned(
+                          left: 12,
+                          top: 12,
+                          bottom: 12,
+                          width: 104,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.file(portraitPhoto!, fit: BoxFit.cover),
+                          ),
+                        ),
+                      Positioned(
+                        left: 16,
+                        right: 16,
+                        top: 12,
+                        child: Text(
+                          selected.title.toUpperCase(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.w900, color: Colors.white70),
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment(0, (textPosition * 1.6) - 1),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                campaignMode ? candidate.text : heading.text,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: textColor, fontSize: textSize, fontWeight: FontWeight.w900, shadows: const [Shadow(color: Colors.black87, blurRadius: 8)]),
+                              ),
+                              const SizedBox(height: 7),
+                              Text(
+                                campaignMode ? party.text : subheading.text,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w600, shadows: const [Shadow(color: Colors.black87, blurRadius: 7)]),
+                              ),
+                              if (campaignMode)
+                                Text(symbol.text, style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (campaignMode)
+                        const Positioned(
+                          bottom: 12,
+                          left: 12,
+                          right: 12,
+                          child: Text('जनता की आवाज़ • विकास का संकल्प', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
         const SizedBox(height: 16),
         const Text('Edit your design', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
         TextField(controller: heading, decoration: const InputDecoration(labelText: 'Main name / heading'), onChanged: (_) => setState(() {})),

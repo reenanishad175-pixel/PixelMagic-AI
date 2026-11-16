@@ -18,6 +18,11 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+      - name: Restore PixelMagic AI logo asset
+        run: |
+          mkdir -p assets
+          base64 --decode assets/pixelmagic_logo.jpg.b64 > assets/pixelmagic_logo.jpg
+          test -s assets/pixelmagic_logo.jpg
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -69,7 +74,7 @@ jobs:
           from pathlib import Path
           p = Path("android/app/src/main/AndroidManifest.xml")
           s = p.read_text()
-          permission = '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\\n'
+          permission = '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n'
           if "android.permission.RECORD_AUDIO" not in s:
               pos = s.find("<application")
               if pos < 0:

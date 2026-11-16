@@ -552,103 +552,17 @@ class _HomeScreenState extends State<HomeScreen> {
       const SizedBox(height: 24),
       const Text('Creative tools', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
       const SizedBox(height: 12),
-      GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: features.length,
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 220,
-          mainAxisExtent: 168,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-        ),
-        itemBuilder: (context, index) {
-          final feature = features[index];
-          return Material(
-            color: const Color(0xFF111F2B),
-            borderRadius: BorderRadius.circular(18),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: () async {
-                final isProPhoto = feature.title == 'PRO Photo Editor';
-                final isProVideo = feature.title == 'PRO Video Editor';
-                if (isProPhoto || isProVideo) {
-                  var allowed = false;
-                  try {
-                    final user = Supabase.instance.client.auth.currentUser;
-                    if (user != null) {
-                      final row = await Supabase.instance.client.from('subscriptions')
-                          .select('plan_code,status,current_period_end')
-                          .eq('user_id', user.id)
-                          .order('created_at', ascending: false)
-                          .limit(1).maybeSingle();
-                      final plan = (row?['plan_code'] ?? '').toString().toLowerCase();
-                      final status = (row?['status'] ?? '').toString().toLowerCase();
-                      final end = DateTime.tryParse((row?['current_period_end'] ?? '').toString());
-                      allowed = status == 'active' &&
-                          (plan == 'lifetime' || (plan == 'monthly' && end != null && end.isAfter(DateTime.now().toUtc())));
-                    }
-                  } catch (_) {
-                    allowed = false;
-                  }
-                  if (!context.mounted) return;
-                  if (!allowed) {
-                    await showDialog<void>(
-                      context: context,
-                      builder: (dialogContext) => AlertDialog(
-                        title: const Text('PRO subscription required'),
-                        content: const Text('Subscribe to Monthly Pro or Lifetime Pro to unlock the Professional Photo and Video Editors.'),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Not now')),
-                          FilledButton(onPressed: () { Navigator.pop(dialogContext); setState(() => selectedTab = 2); },
-                            child: const Text('View subscription')),
-                        ],
-                      ),
-                    );
-                    return;
-                  }
-                  await Navigator.push(context, MaterialPageRoute(
-                    builder: (_) => isProPhoto ? const ProPhotoEditorScreen() : const ProVideoEditorScreen(),
-                  ));
-                  return;
-                }
-                await Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => feature.title == 'AI Creative Studio'
-                      ? const PixelMagicAiStudio()
-                      : feature.title == 'Photo Editing'
-                          ? const LocalPhotoEditorScreen()
-                          : feature.title == 'Video Editor'
-                              ? const LocalVideoEditorScreen()
-                              : feature.title == 'Background Remover'
-                                  ? const BackgroundRemoverScreen()
-                                  : FeatureScreen(feature: feature),
-                ));
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(15),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 45, height: 45,
-                      decoration: BoxDecoration(color: const Color(0xFF153E43), borderRadius: BorderRadius.circular(14)),
-                      child: Icon(feature.icon, color: const Color(0xFF55DCCB), size: 25),
-                    ),
-                    const Spacer(),
-                    Row(children: [Expanded(child: Text(feature.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis)), if (feature.title.startsWith('PRO')) const Text('PRO', style: TextStyle(color: Color(0xFFFFD479), fontSize: 9, fontWeight: FontWeight.w900))]),
-                    const SizedBox(height: 4),
-                    Text(feature.subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white60, fontSize: 11)),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-      const SizedBox(height: 18),
       _utilityBar(context, 'Gemini AI Chat', 'Chat with Gemini in Hindi or English', Icons.chat_bubble_outline,
         () => const GeminiChatScreen()),
+      const SizedBox(height: 8),
+      _utilityBar(context, 'AI Creative Studio', 'Create AI images, AI reels and animate photos', Icons.auto_awesome,
+        () => const PixelMagicAiStudio()),
+      const SizedBox(height: 8),
+      _utilityBar(context, 'Photo Editing', '20+ filters, preview and save', Icons.tune,
+        () => const LocalPhotoEditorScreen()),
+      const SizedBox(height: 8),
+      _utilityBar(context, 'Video Editor', 'Trim, music, text, filters and merge', Icons.video_camera_back,
+        () => const LocalVideoEditorScreen()),
       const SizedBox(height: 8),
       _utilityBar(context, 'Gemini AI Image', 'Generate images with Gemini AI', Icons.auto_awesome,
         () => const PixelMagicAiStudio(initialTask: 'gemini_image')),
@@ -658,6 +572,14 @@ class _HomeScreenState extends State<HomeScreen> {
       const SizedBox(height: 8),
       _utilityBar(context, 'Photo & Video Compressor', 'Reduce MB size of photos and videos', Icons.compress,
         () => const MediaCompressorScreen()),
+      const SizedBox(height: 18),
+      const Text('PRO tools', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFFFD479))),
+      const SizedBox(height: 8),
+      _proUtilityBar(context, 'PRO Photo Editor', 'Advanced photo editing studio', Icons.workspace_premium,
+        () => const ProPhotoEditorScreen()),
+      const SizedBox(height: 8),
+      _proUtilityBar(context, 'PRO Video Editor', 'Professional video production tools', Icons.movie_filter,
+        () => const ProVideoEditorScreen()),
       const SizedBox(height: 8),
       _proUtilityBar(context, 'PRO PDF Editor & Photo to PDF', 'Create PDFs, add / replace text, images and manage pages', Icons.picture_as_pdf,
         () => const ProPdfEditorScreen()),

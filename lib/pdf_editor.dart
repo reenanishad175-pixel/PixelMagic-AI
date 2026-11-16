@@ -316,21 +316,42 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
             for (var i = 0; i < pages.length; i++)
               Padding(padding: const EdgeInsets.only(right: 7), child: ChoiceChip(label: Text('Page ${i + 1}'), selected: currentPage == i, onSelected: (_) => setState(() => currentPage = i))),
           ])),
-          ClipRRect(borderRadius: BorderRadius.circular(12), child: AspectRatio(
-            aspectRatio: page!.width / page.height,
-            child: Stack(fit: StackFit.expand, children: [
-              Image.memory(page.bytes, fit: BoxFit.fill),
-              for (final overlay in page.overlays)
-                if (overlay.imageBytes != null)
-                  Positioned(left: overlay.x * 100, top: overlay.y * 100, width: overlay.width * 100, height: overlay.height * 100,
-                    child: Image.memory(overlay.imageBytes!, fit: BoxFit.contain))
-                else if (overlay.text != null)
-                  Positioned(left: overlay.x * 100, top: overlay.y * 100,
-                    child: Container(color: overlay.whiteout ? Colors.white : Colors.transparent,
-                      padding: overlay.whiteout ? const EdgeInsets.all(4) : EdgeInsets.zero,
-                      child: Text(overlay.text!, style: TextStyle(fontSize: (overlay.fontSize * .65).clamp(8, 28), color: overlay.color, fontWeight: FontWeight.bold)))),
-            ]),
-          )),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: AspectRatio(
+              aspectRatio: page!.width / page.height,
+              child: LayoutBuilder(builder: (context, constraints) => Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.memory(page.bytes, fit: BoxFit.fill),
+                  for (final overlay in page.overlays)
+                    if (overlay.imageBytes != null)
+                      Positioned(
+                        left: overlay.x * constraints.maxWidth,
+                        top: overlay.y * constraints.maxHeight,
+                        width: overlay.width * constraints.maxWidth,
+                        height: overlay.height * constraints.maxHeight,
+                        child: Image.memory(overlay.imageBytes!, fit: BoxFit.contain),
+                      )
+                    else if (overlay.text != null)
+                      Positioned(
+                        left: overlay.x * constraints.maxWidth,
+                        top: overlay.y * constraints.maxHeight,
+                        child: Container(
+                          width: overlay.whiteout ? overlay.width * constraints.maxWidth : constraints.maxWidth * .82,
+                          height: overlay.whiteout ? overlay.height * constraints.maxHeight : null,
+                          color: overlay.whiteout ? Colors.white : Colors.transparent,
+                          padding: overlay.whiteout ? const EdgeInsets.all(4) : EdgeInsets.zero,
+                          child: Text(
+                            overlay.text!,
+                            style: TextStyle(fontSize: (overlay.fontSize * .65).clamp(8, 28), color: overlay.color, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                ],
+              )),
+            ),
+          ),
           const SizedBox(height: 10),
           Wrap(spacing: 8, runSpacing: 8, children: [
             OutlinedButton.icon(onPressed: addText, icon: const Icon(Icons.text_fields), label: const Text('Add / replace text')),

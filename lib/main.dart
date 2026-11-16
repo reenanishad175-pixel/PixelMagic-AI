@@ -10,6 +10,7 @@ import 'pro_editors.dart';
 import 'local_downloads.dart';
 import 'local_background_remover.dart';
 import 'pixelmagic_ai_studio.dart';
+import 'gemini_chat_screen.dart';
 import 'media_tools.dart';
 import 'design_studio.dart';
 import 'pdf_editor.dart';
@@ -646,6 +647,12 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       const SizedBox(height: 18),
+      _utilityBar(context, 'Gemini AI Chat', 'Chat with Gemini in Hindi or English', Icons.chat_bubble_outline,
+        () => const GeminiChatScreen()),
+      const SizedBox(height: 8),
+      _utilityBar(context, 'Gemini AI Image', 'Generate images with Gemini AI', Icons.auto_awesome,
+        () => const PixelMagicAiStudio(initialTask: 'gemini_image')),
+      const SizedBox(height: 8),
       _utilityBar(context, 'Background Remover', 'Remove photo background', Icons.layers_clear,
         () => const BackgroundRemoverScreen()),
       const SizedBox(height: 8),

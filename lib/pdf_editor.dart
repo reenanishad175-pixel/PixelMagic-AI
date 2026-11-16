@@ -132,10 +132,10 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
     final decoded = img.decodeImage(pages[currentPage].bytes);
     if (decoded == null) { controller.dispose(); return; }
     final box = line.boundingBox;
-    final x = (box.left / decoded.width).clamp(0.0, 0.95);
-    final y = (box.top / decoded.height).clamp(0.0, 0.95);
-    final w = (box.width / decoded.width).clamp(0.05, 1.0 - x);
-    final h = (box.height / decoded.height).clamp(0.025, 1.0 - y);
+    final x = (box.left / decoded.width).clamp(0.0, 0.95).toDouble();
+    final y = (box.top / decoded.height).clamp(0.0, 0.95).toDouble();
+    final w = (box.width / decoded.width).clamp(0.05, 1.0 - x).toDouble();
+    final h = (box.height / decoded.height).clamp(0.025, 1.0 - y).toDouble();
     final replacement = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -152,7 +152,7 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
     setState(() {
       pages[currentPage].overlays.add(_PdfOverlay(
         text: replacement, x: x, y: y, width: w, height: h,
-        fontSize: (box.height * pages[currentPage].width / decoded.width * .78).clamp(7, 42),
+        fontSize: (box.height * pages[currentPage].width / decoded.width * .78).clamp(7, 42).toDouble(),
         whiteout: true,
       ));
       status = 'Editable replacement layer added. Check alignment before exporting.';

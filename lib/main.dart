@@ -917,7 +917,7 @@ class _FeatureScreenState extends State<FeatureScreen> {
         TextField(
           controller: prompt, minLines: 3, maxLines: 5,
           decoration: InputDecoration(
-            labelText: widget.feature.title == 'AI Photo' || widget.feature.title == 'Text to Video' || widget.feature.title == 'AI Reels' ? 'Describe your idea' : 'What would you like to change?',
+            labelText: widget.feature.title == 'AI Photo' || widget.feature.title == 'AI Reels' ? 'Describe your idea' : 'What would you like to change?',
             hintText: 'Write your creative idea here…', alignLabelWithHint: true,
           ),
         ),
@@ -925,10 +925,10 @@ class _FeatureScreenState extends State<FeatureScreen> {
         FilledButton.icon(
           onPressed: null,
           icon: const Icon(Icons.cloud_off),
-          label: const Text('AI service will be connected after testing'),
+          label: const Text('This tool is not connected yet'),
         ),
         const SizedBox(height: 12),
-        const Text('This tool needs an AI service/API. Photo selection and prompt entry are available now; generation will be enabled after the first APK test.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 11)),
+        const Text('This feature is not connected to an AI generation service yet. The photo and prompt controls are only a preview.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 11)),
       ]),
     );
   }

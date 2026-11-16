@@ -8,6 +8,7 @@ import 'package:gal/gal.dart';
 import 'package:file_picker/file_picker.dart';
 import 'local_video_engine.dart';
 import 'local_downloads.dart';
+import 'design_studio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 import 'package:image/image.dart' as img;
@@ -130,6 +131,23 @@ class _LocalPhotoEditorScreenState extends State<LocalPhotoEditorScreen> {
     }
   }
 
+  Future<void> _exportSocialSize() async {
+    if (_photo == null || _saving) return;
+    setState(() => _saving = true);
+    try {
+      final path = await exportPreviewAtSocialSize(context: context, previewKey: _previewKey);
+      if (path != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Exported at selected social size: ${path.split(Platform.pathSeparator).last}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final filter = _filters[_selected];
@@ -190,7 +208,9 @@ class _LocalPhotoEditorScreenState extends State<LocalPhotoEditorScreen> {
             })),
           const SizedBox(height: 14),
           FilledButton.icon(onPressed: _saving ? null : _savePhoto,
-            icon: const Icon(Icons.save_alt), label: Text(_saving ? 'Saving…' : 'Save to gallery')),
+            icon: const Icon(Icons.save_alt), label: Text(_saving ? 'Saving…' : 'Save original size')),
+          OutlinedButton.icon(onPressed: _saving ? null : _exportSocialSize,
+            icon: const Icon(Icons.aspect_ratio), label: const Text('Download for Facebook / Instagram / WhatsApp / YouTube')),
           OutlinedButton.icon(onPressed: _choosePhoto, icon: const Icon(Icons.photo_library_outlined), label: const Text('Change photo')),
         ],
         if (_photo == null) const SizedBox(height: 14),

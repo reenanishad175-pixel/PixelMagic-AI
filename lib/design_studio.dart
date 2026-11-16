@@ -1,7 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -109,12 +108,12 @@ Future<SocialExportChoice?> showSocialExportDialog(BuildContext context) async {
   return choice;
 }
 
-Future<String> exportPreviewAtSocialSize({
+Future<String?> exportPreviewAtSocialSize({
   required BuildContext context,
   required GlobalKey previewKey,
 }) async {
   final choice = await showSocialExportDialog(context);
-  if (choice == null) throw const _ExportCancelled();
+  if (choice == null) return null;
   final boundary = previewKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
   if (boundary == null) throw Exception('Photo preview is not ready.');
   final rendered = await boundary.toImage(pixelRatio: 2.5);
@@ -129,13 +128,13 @@ Future<String> exportPreviewAtSocialSize({
       ? (w / source.width > h / source.height ? w / source.width : h / source.height)
       : (w / source.width < h / source.height ? w / source.width : h / source.height);
   final resized = img.copyResize(source,
-      width: (source.width * scale).round().clamp(1, 8192),
-      height: (source.height * scale).round().clamp(1, 8192),
+      width: (source.width * scale).round().clamp(1, 8192).toInt(),
+      height: (source.height * scale).round().clamp(1, 8192).toInt(),
       interpolation: img.Interpolation.average);
   img.Image output;
   if (choice.fill) {
-    final x = ((resized.width - w) / 2).round().clamp(0, resized.width - w);
-    final y = ((resized.height - h) / 2).round().clamp(0, resized.height - h);
+    final x = ((resized.width - w) / 2).round().clamp(0, resized.width - w).toInt();
+    final y = ((resized.height - h) / 2).round().clamp(0, resized.height - h).toInt();
     output = img.copyCrop(resized, x: x, y: y, width: w, height: h);
   } else {
     output = img.Image(width: w, height: h, numChannels: 4);
@@ -319,6 +318,3 @@ class _LogoWallpaperStudioState extends State<LogoWallpaperStudio> {
   }
 }
 
-class _ExportCancelled implements Exception {
-  const _ExportCancelled();
-}

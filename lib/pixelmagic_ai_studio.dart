@@ -1,6 +1,8 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -23,6 +25,8 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
   bool busy = false;
   bool saving = false;
   String? error, imageUrl, stage, videoUrl;
+  Uint8List? geminiImageBytes;
+  String? geminiStatus;
   VideoPlayerController? video;
   String? apiStatus;
 
@@ -31,6 +35,7 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
     super.initState();
     task = widget.initialTask;
     checkApi();
+    checkGemini();
   }
 
   Future<void> checkApi() async {
@@ -45,6 +50,17 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
       }
     } catch (e) {
       if (mounted) setState(() => apiStatus = 'API check failed: $e');
+    }
+  }
+
+  Future<void> checkGemini() async {
+    try {
+      final response = await Supabase.instance.client.functions.invoke('pixelmagic-ai', body: {'action': 'gemini_check'});
+      final data = response.data;
+      if (mounted) setState(() => geminiStatus = response.status == 200 && data is Map && data['configured'] == true
+          ? 'Gemini API connected' : 'Gemini API key is not available on server');
+    } catch (_) {
+      if (mounted) setState(() => geminiStatus = 'Gemini API check failed');
     }
   }
 
@@ -76,10 +92,19 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
       setState(() => error = 'Choose a photo first, then describe how it should move.');
       return;
     }
-    setState(() { busy = true; error = null; imageUrl = null; videoUrl = null; stage = 'Preparing secure AI request…'; });
+    setState(() { busy = true; error = null; imageUrl = null; videoUrl = null; geminiImageBytes = null; stage = 'Preparing secure AI request…'; });
     await video?.dispose(); video = null;
     String? inputObjectPath;
     try {
+      if (task == 'gemini_image') {
+        setState(() => stage = 'Generating image with Gemini…');
+        final result = await _call({'task': 'gemini_image', 'prompt': prompt.text.trim()});
+        final encoded = result['image_base64']?.toString();
+        if (encoded == null || encoded.isEmpty) throw Exception('Gemini did not return an image.');
+        final bytes = base64Decode(encoded);
+        if (mounted) setState(() { geminiImageBytes = bytes; stage = 'Generation complete'; });
+        return;
+      }
       final requestBody = <String, dynamic>{
         'task': task,
         'prompt': prompt.text.trim(),
@@ -158,23 +183,24 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
   Future<void> saveResult() async {
     if (saving) return;
     final url = imageUrl ?? videoUrl;
-    if (url == null) return;
+    final bytes = geminiImageBytes;
+    if (url == null && bytes == null) return;
     setState(() => saving = true);
     try {
-      final uri = Uri.parse(url);
-      final request = await HttpClient().getUrl(uri);
-      final response = await request.close();
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw Exception('Could not download generated media.');
-      }
       final dir = await getApplicationDocumentsDirectory();
       final folder = Directory('${dir.path}/PixelMagicDownloads');
       if (!await folder.exists()) await folder.create(recursive: true);
-      final extension = imageUrl != null ? 'png' : 'mp4';
+      final extension = (imageUrl != null || bytes != null) ? 'png' : 'mp4';
       final path = '${folder.path}/PixelMagic_AI_${DateTime.now().millisecondsSinceEpoch}.$extension';
-      final file = File(path);
-      await response.pipe(file.openWrite());
-      await LocalDownloads.registerFile(path, mediaType: imageUrl != null ? 'image' : 'video');
+      if (bytes != null) {
+        await File(path).writeAsBytes(bytes, flush: true);
+      } else {
+        final request = await HttpClient().getUrl(Uri.parse(url!));
+        final response = await request.close();
+        if (response.statusCode < 200 || response.statusCode >= 300) throw Exception('Could not download generated media.');
+        await response.pipe(File(path).openWrite());
+      }
+      await LocalDownloads.registerFile(path, mediaType: extension == 'png' ? 'image' : 'video');
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('AI result saved to Downloads.')));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: $e')));
@@ -195,6 +221,7 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
       const SizedBox(height: 18),
       SegmentedButton<String>(segments: const [
         ButtonSegment(value: 'image', label: Text('AI Image'), icon: Icon(Icons.image)),
+        ButtonSegment(value: 'gemini_image', label: Text('Gemini Image'), icon: Icon(Icons.auto_awesome)),
         ButtonSegment(value: 'video', label: Text('AI Reels'), icon: Icon(Icons.movie)),
         ButtonSegment(value: 'image_to_video', label: Text('Photo to Video'), icon: Icon(Icons.motion_photos_auto)),
       ], selected: {task}, onSelectionChanged: busy ? null : (v) => setState(() { task = v.first; imageUrl = null; videoUrl = null; video?.dispose(); video = null; })),
@@ -233,7 +260,7 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
         maxLines: 6,
         maxLength: 2000,
         decoration: InputDecoration(
-          labelText: task == 'image' ? 'Describe the image'
+          labelText: (task == 'image' || task == 'gemini_image') ? 'Describe the image'
               : task == 'image_to_video' ? 'Describe how the photo should move'
               : 'Describe your reel',
         ),
@@ -264,11 +291,13 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
       ),
       if (busy) ...[const SizedBox(height: 16), const LinearProgressIndicator(), if (stage != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(stage!))],
       if (error != null) Padding(padding: const EdgeInsets.only(top: 14), child: Text(error!, style: const TextStyle(color: Colors.redAccent))),
+      if (geminiImageBytes != null) ...[const SizedBox(height: 18), ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.memory(geminiImageBytes!, fit: BoxFit.contain)), FilledButton.icon(onPressed: saving ? null : saveResult, icon: const Icon(Icons.download), label: Text(saving ? 'Saving…' : 'Save Gemini image to Downloads'))],
       if (imageUrl != null) ...[const SizedBox(height: 18), ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.network(imageUrl!, errorBuilder: (_, __, ___) => const Text('Could not load generated image.'))), FilledButton.icon(onPressed: saving ? null : saveResult, icon: const Icon(Icons.download), label: Text(saving ? 'Saving…' : 'Save image to Downloads')), SelectableText(imageUrl!, style: const TextStyle(fontSize: 11))],
       if (video != null && video!.value.isInitialized) ...[const SizedBox(height: 18), AspectRatio(aspectRatio: video!.value.aspectRatio, child: VideoPlayer(video!)), FilledButton.tonalIcon(onPressed: () => setState(() => video!.value.isPlaying ? video!.pause() : video!.play()), icon: Icon(video!.value.isPlaying ? Icons.pause : Icons.play_arrow), label: const Text('Play / Pause')), FilledButton.icon(onPressed: saving ? null : saveResult, icon: const Icon(Icons.download), label: Text(saving ? 'Saving…' : 'Save video to Downloads'))],
+      if (geminiStatus != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(geminiStatus!, style: TextStyle(fontSize: 12, color: geminiStatus == 'Gemini API connected' ? Colors.greenAccent : Colors.orangeAccent))),
       if (apiStatus != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(apiStatus!, style: TextStyle(fontSize: 12, color: apiStatus!.startsWith('AI API connected') ? Colors.greenAccent : Colors.orangeAccent))),
       const SizedBox(height: 14),
-      const Text('AI generations may incur fal.ai usage charges.', style: TextStyle(color: Colors.white54, fontSize: 12)),
+      const Text('Gemini and FAL AI generations may have provider usage limits or charges.', style: TextStyle(color: Colors.white54, fontSize: 12)),
     ]),
   );
 }

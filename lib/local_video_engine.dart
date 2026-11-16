@@ -317,4 +317,29 @@ class LocalVideoEngine {
     return _run(command, output, 'Advanced video export');
   }
 
+
+  static Future<String> exportForSocial({
+    required String input,
+    required int width,
+    required int height,
+    required String fitMode,
+  }) async {
+    if (width < 144 || height < 144 || width > 4096 || height > 4096 ||
+        width.isOdd || height.isOdd) {
+      throw ArgumentError('Video dimensions must be even numbers between 144 and 4096.');
+    }
+    if (fitMode != 'fit' && fitMode != 'fill') {
+      throw ArgumentError('Unknown video fit mode.');
+    }
+    final output = await _outputPath('PixelMagic_Social');
+    final filter = fitMode == 'fill'
+        ? 'scale=$width:$height:force_original_aspect_ratio=increase,crop=$width:$height'
+        : 'scale=$width:$height:force_original_aspect_ratio=decrease,pad=$width:$height:(ow-iw)/2:(oh-ih)/2:black';
+    final command = '-y -i ' + _quote(input) +
+        ' -vf "$filter" -c:v mpeg4 -q:v 3 -c:a aac -b:a 192k -movflags +faststart ' +
+        _quote(output);
+    return _run(command, output, 'Social size video export');
+  }
+
+
 }

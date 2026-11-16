@@ -8,17 +8,41 @@ import 'package:video_player/video_player.dart';
 import 'local_downloads.dart';
 
 class PixelMagicAiStudio extends StatefulWidget {
-  const PixelMagicAiStudio({super.key});
+  final String initialTask;
+  const PixelMagicAiStudio({super.key, this.initialTask = 'image'});
   @override
   State<PixelMagicAiStudio> createState() => _PixelMagicAiStudioState();
 }
 class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
   final prompt = TextEditingController();
-  String task = 'image';
+  late String task;
   bool busy = false;
   bool saving = false;
   String? error, imageUrl, stage, videoUrl;
   VideoPlayerController? video;
+  String? apiStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    task = widget.initialTask;
+    checkApi();
+  }
+
+  Future<void> checkApi() async {
+    try {
+      final response = await Supabase.instance.client.functions.invoke('fal-key-check');
+      final data = response.data;
+      if (response.status == 200 && data is Map && data['configured'] == true) {
+        if (mounted) setState(() => apiStatus = 'AI API connected — server key is available.');
+      } else {
+        final message = data is Map ? (data['message'] ?? data['error'] ?? 'API key is not configured.') : 'API key is not configured.';
+        if (mounted) setState(() => apiStatus = message.toString());
+      }
+    } catch (e) {
+      if (mounted) setState(() => apiStatus = 'API check failed: $e');
+    }
+  }
 
   Future<Map<String, dynamic>> _call(Map<String, dynamic> body) async {
     final response = await Supabase.instance.client.functions.invoke('pixelmagic-ai', body: body);
@@ -101,23 +125,24 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
   void dispose() { prompt.dispose(); video?.dispose(); super.dispose(); }
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('PixelMagic AI Studio')),
+    appBar: AppBar(title: const Text('AI Creative Studio')),
     body: ListView(padding: const EdgeInsets.all(18), children: [
       const Text('Create with AI', style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold)),
       const SizedBox(height: 8),
-      const Text('AI image and video generation using the secured fal.ai service.'),
+      const Text('Describe your idea and let PixelMagic create it with AI.'),
       const SizedBox(height: 18),
       SegmentedButton<String>(segments: const [
         ButtonSegment(value: 'image', label: Text('AI Image'), icon: Icon(Icons.image)),
-        ButtonSegment(value: 'video', label: Text('AI Video'), icon: Icon(Icons.movie)),
+        ButtonSegment(value: 'video', label: Text('AI Reels'), icon: Icon(Icons.movie)),
       ], selected: {task}, onSelectionChanged: busy ? null : (v) => setState(() { task = v.first; imageUrl = null; videoUrl = null; video?.dispose(); video = null; })),
       const SizedBox(height: 14),
-      TextField(controller: prompt, minLines: 3, maxLines: 6, maxLength: 2000, decoration: InputDecoration(labelText: task == 'image' ? 'Describe the image' : 'Describe the video')),
-      FilledButton.icon(onPressed: busy ? null : generate, icon: const Icon(Icons.auto_awesome), label: Text(busy ? 'Generating…' : task == 'image' ? 'Generate image' : 'Generate video')),
+      TextField(controller: prompt, minLines: 3, maxLines: 6, maxLength: 2000, decoration: InputDecoration(labelText: task == 'image' ? 'Describe the image' : 'Describe your reel')),
+      FilledButton.icon(onPressed: busy ? null : generate, icon: const Icon(Icons.auto_awesome), label: Text(busy ? 'Generating…' : task == 'image' ? 'Generate image' : 'Generate AI Reel')),
       if (busy) ...[const SizedBox(height: 16), const LinearProgressIndicator(), if (stage != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(stage!))],
       if (error != null) Padding(padding: const EdgeInsets.only(top: 14), child: Text(error!, style: const TextStyle(color: Colors.redAccent))),
       if (imageUrl != null) ...[const SizedBox(height: 18), ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.network(imageUrl!, errorBuilder: (_, __, ___) => const Text('Could not load generated image.'))), FilledButton.icon(onPressed: saving ? null : saveResult, icon: const Icon(Icons.download), label: Text(saving ? 'Saving…' : 'Save image to Downloads')), SelectableText(imageUrl!, style: const TextStyle(fontSize: 11))],
       if (video != null && video!.value.isInitialized) ...[const SizedBox(height: 18), AspectRatio(aspectRatio: video!.value.aspectRatio, child: VideoPlayer(video!)), FilledButton.tonalIcon(onPressed: () => setState(() => video!.value.isPlaying ? video!.pause() : video!.play()), icon: Icon(video!.value.isPlaying ? Icons.pause : Icons.play_arrow), label: const Text('Play / Pause')), FilledButton.icon(onPressed: saving ? null : saveResult, icon: const Icon(Icons.download), label: Text(saving ? 'Saving…' : 'Save video to Downloads'))],
+      if (apiStatus != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(apiStatus!, style: TextStyle(fontSize: 12, color: apiStatus!.startsWith('AI API connected') ? Colors.greenAccent : Colors.orangeAccent))),
       const SizedBox(height: 14),
       const Text('AI generations may incur fal.ai usage charges.', style: TextStyle(color: Colors.white54, fontSize: 12)),
     ]),

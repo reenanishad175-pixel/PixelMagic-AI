@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:gal/gal.dart';
 import 'package:file_picker/file_picker.dart';
 import 'local_video_engine.dart';
+import 'video_export_options.dart';
 import 'local_downloads.dart';
 import 'design_studio.dart';
 import 'package:image_picker/image_picker.dart';
@@ -238,6 +239,7 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
   double _trimEnd = 0;
   String _filter = 'Original';
   String? _backgroundPath;
+  VideoExportSettings? _videoExportSettings;
 
   Future<void> _chooseBackground() async {
     final picked = await FilePicker.platform.pickFiles(
@@ -260,8 +262,11 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
   }
 
   Future<void> _chooseVideo() async {
+    final settings = await showVideoExportSettingsDialog(context);
+    if (settings == null || !mounted) return;
     final file = await _picker.pickVideo(source: ImageSource.gallery);
     if (file == null) return;
+    setState(() => _videoExportSettings = settings);
     await _loadVideo(file.path);
   }
 
@@ -290,7 +295,14 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
     setState(() { _editing = true; _error = null; _status = 'Processing video on this device…'; });
     try {
       await c.pause();
-      final output = await action(c.dataSource);
+      final editedOutput = await action(c.dataSource);
+      final settings = _videoExportSettings;
+      final output = settings == null ? editedOutput : await LocalVideoEngine.exportForSocial(
+        input: editedOutput,
+        width: settings.width,
+        height: settings.height,
+        fitMode: settings.fitMode,
+      );
       await _loadVideo(output);
       if (mounted) setState(() => _status = success);
       try {
@@ -388,6 +400,14 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
             Text(_time(c.value.position) + ' / ' + _time(duration), style: const TextStyle(fontSize: 11)),
           ]),
           OutlinedButton.icon(onPressed: _editing ? null : _chooseVideo, icon: const Icon(Icons.video_file), label: const Text('Choose another video')),
+          if (_videoExportSettings != null)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.aspect_ratio, color: _accent),
+              title: Text('Export: ${_videoExportSettings!.label}'),
+              subtitle: Text('${_videoExportSettings!.width} × ${_videoExportSettings!.height} px · ${_videoExportSettings!.fitMode.toUpperCase()}'),
+              trailing: TextButton(onPressed: _editing ? null : _chooseVideo, child: const Text('Change')),
+            ),
           const SizedBox(height: 12),
           const Text('Trim / Cut', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
           Text('Select the part to keep · ${_time(Duration(milliseconds: (_trimStart * 1000).round()))} – ${_time(Duration(milliseconds: (_trimEnd * 1000).round()))}', style: const TextStyle(color: Colors.white60, fontSize: 12)),

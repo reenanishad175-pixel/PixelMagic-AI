@@ -74,8 +74,8 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
         try {
           final scale = (1800 / page.width).clamp(1.0, 2.0);
           final raster = await page.render(
-            width: (page.width * scale).round(),
-            height: (page.height * scale).round(),
+            width: page.width * scale,
+            height: page.height * scale,
             format: pdfx.PdfPageImageFormat.png,
           );
           if (raster == null) throw Exception('Could not render page $number.');
@@ -236,18 +236,22 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
             layers.add(pw.Positioned(
               left: overlay.x * page.width,
               top: overlay.y * page.height,
-              width: overlay.width * page.width,
-              height: overlay.height * page.height,
-              child: pw.Image(pw.MemoryImage(overlay.imageBytes!), fit: pw.BoxFit.contain),
+              child: pw.SizedBox(
+                width: overlay.width * page.width,
+                height: overlay.height * page.height,
+                child: pw.Image(pw.MemoryImage(overlay.imageBytes!), fit: pw.BoxFit.contain),
+              ),
             ));
           } else if (overlay.text != null) {
             if (overlay.whiteout) {
               layers.add(pw.Positioned(
                 left: overlay.x * page.width,
                 top: overlay.y * page.height,
-                width: overlay.width * page.width,
-                height: overlay.height * page.height,
-                child: pw.Container(color: PdfColors.white),
+                child: pw.SizedBox(
+                  width: overlay.width * page.width,
+                  height: overlay.height * page.height,
+                  child: pw.Container(color: PdfColors.white),
+                ),
               ));
             }
             final font = overlay.font == 'Times' ? pw.Font.times()
@@ -255,12 +259,14 @@ class _ProPdfEditorScreenState extends State<ProPdfEditorScreen> {
             layers.add(pw.Positioned(
               left: overlay.x * page.width,
               top: overlay.y * page.height,
-              width: page.width * .82,
-              child: pw.Text(
+              child: pw.SizedBox(
+                width: page.width * .82,
+                child: pw.Text(
                 overlay.text!,
                 style: pw.TextStyle(font: font, fontSize: overlay.fontSize, color: PdfColor(
                   overlay.color.red / 255, overlay.color.green / 255, overlay.color.blue / 255,
                 )),
+                ),
               ),
             ));
           }

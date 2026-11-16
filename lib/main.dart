@@ -9,6 +9,7 @@ import 'local_editors.dart';
 import 'pro_editors.dart';
 import 'local_downloads.dart';
 import 'local_background_remover.dart';
+import 'pixelmagic_ai_studio.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const supabaseUrl = 'https://lmpvwgzpyprsqxcxecss.supabase.co';
@@ -401,11 +402,65 @@ const features = [
   Feature('PRO Photo Editor', 'Advanced photo editing studio', Icons.workspace_premium, needsPhoto: false),
   Feature('PRO Video Editor', 'Professional video production tools', Icons.movie_filter, needsPhoto: false),
   Feature('Background Remover', 'Remove a person’s background offline', Icons.layers_clear),
-  Feature('Photo Enhancer', 'Choose a photo to enhance', Icons.hd),
   Feature('Photo to Video', 'Prepare a photo for animation', Icons.movie),
-  Feature('Text to Video', 'Describe the video you imagine', Icons.video_library, needsPhoto: false),
   Feature('AI Reels', 'Plan a short vertical video', Icons.smart_display, needsPhoto: false),
 ];
+
+class CreativeHeroBanner extends StatelessWidget {
+  const CreativeHeroBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 238,
+    clipBehavior: Clip.antiAlias,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(24),
+      gradient: const LinearGradient(
+        colors: [Color(0xFF101C35), Color(0xFF164B59), Color(0xFF27234D)],
+        begin: Alignment.topLeft, end: Alignment.bottomRight,
+      ),
+      boxShadow: [BoxShadow(color: const Color(0xFF18C6B8).withOpacity(.16), blurRadius: 24, offset: const Offset(0, 10))],
+    ),
+    child: Stack(children: [
+      Positioned(right: -38, top: -50, child: Container(width: 190, height: 190, decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF56E5D2).withOpacity(.10)))),
+      Positioned(right: 8, bottom: -72, child: Container(width: 180, height: 180, decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFB48CFF).withOpacity(.13)))),
+      Positioned(right: 20, top: 22, child: Transform.rotate(angle: .12, child: Container(
+        width: 108, height: 146,
+        decoration: BoxDecoration(color: const Color(0xFFFAE5C5), borderRadius: BorderRadius.circular(17), border: Border.all(color: Colors.white, width: 2), boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 16, offset: Offset(0, 8))]),
+        child: ClipRRect(borderRadius: BorderRadius.circular(15), child: Stack(fit: StackFit.expand, children: [
+          const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF79C6C4), Color(0xFFEF9D83), Color(0xFF533F69)]))),
+          const Positioned(top: 14, left: 10, child: Icon(Icons.landscape_rounded, size: 68, color: Color(0xFF244E63))),
+          Positioned(bottom: 10, left: 9, right: 9, child: Container(height: 22, decoration: BoxDecoration(color: Colors.white.withOpacity(.84), borderRadius: BorderRadius.circular(7)), child: const Center(child: Text('COLOR GRADE', style: TextStyle(fontSize: 7, color: Color(0xFF26334B), fontWeight: FontWeight.w900, letterSpacing: 1)))),
+        ])),
+      ))),
+      Positioned(right: 102, bottom: 28, child: Transform.rotate(angle: -.13, child: Container(
+        width: 82, height: 112,
+        decoration: BoxDecoration(color: const Color(0xFF211E38), borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFF8EEADD), width: 1.5), boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 12, offset: Offset(0, 6))]),
+        child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.movie_creation_rounded, size: 36, color: Color(0xFFFFD479)),
+          SizedBox(height: 7),
+          Text('REELS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2)),
+          SizedBox(height: 5),
+          Icon(Icons.play_circle_fill_rounded, size: 19, color: Color(0xFF55DCCB)),
+        ]),
+      ))),
+      Positioned(left: 18, top: 19, right: 185, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5), decoration: BoxDecoration(color: const Color(0xFF55DCCB).withOpacity(.15), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFF55DCCB).withOpacity(.45))), child: const Text('PIXELMAGIC CREATIVE STUDIO', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 8, letterSpacing: .8, fontWeight: FontWeight.w800, color: Color(0xFF9AF2E5)))),
+        const SizedBox(height: 13),
+        const Text('Make your ideas\nlook magical.', style: TextStyle(fontSize: 25, height: 1.12, fontWeight: FontWeight.w900, color: Colors.white)),
+        const SizedBox(height: 8),
+        const Text('PHOTO  •  VIDEO  •  AI ART', style: TextStyle(fontSize: 9, letterSpacing: 1.1, fontWeight: FontWeight.w800, color: Color(0xFFFFD479))),
+        const SizedBox(height: 7),
+        const Text('Edit photos, create videos and bring every idea to life.', maxLines: 3, style: TextStyle(fontSize: 10, height: 1.35, color: Colors.white70)),
+      ])),
+      Positioned(left: 18, bottom: 14, child: Row(children: const [
+        Icon(Icons.auto_awesome, size: 13, color: Color(0xFFFFD479)),
+        SizedBox(width: 5),
+        Text('CREATE  •  EDIT  •  INSPIRE', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, letterSpacing: 1.1, color: Colors.white70)),
+      ])),
+    ]),
+  );
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -490,23 +545,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _homeContent() => ListView(
     padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
     children: [
-      Container(
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF145B5A), Color(0xFF162D3B)],
-            begin: Alignment.topLeft, end: Alignment.bottomRight,
-          ),
-        ),
-        child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('YOUR CREATIVE STUDIO', style: TextStyle(letterSpacing: 1.4, fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFBCEFE8))),
-          SizedBox(height: 10),
-          Text('Make your ideas\\nlook magical.', style: TextStyle(fontSize: 27, height: 1.18, fontWeight: FontWeight.bold)),
-          SizedBox(height: 8),
-          Text('Pick a tool and start with a photo or a prompt.', style: TextStyle(color: Colors.white70)),
-        ]),
-      ),
+      const CreativeHeroBanner(),
       const SizedBox(height: 22),
       const CreditsPanel(),
       const SizedBox(height: 24),
@@ -573,13 +612,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   return;
                 }
                 await Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => feature.title == 'Photo Editing' || feature.title == 'Photo Enhancer'
-                      ? const LocalPhotoEditorScreen()
-                      : feature.title == 'Video Editor'
-                          ? const LocalVideoEditorScreen()
-                          : feature.title == 'Background Remover'
-                              ? const BackgroundRemoverScreen()
-                              : FeatureScreen(feature: feature),
+                  builder: (_) => feature.title == 'AI Photo'
+                      ? const PixelMagicAiStudio(initialTask: 'image')
+                      : feature.title == 'AI Reels'
+                          ? const PixelMagicAiStudio(initialTask: 'video')
+                          : feature.title == 'Photo Editing'
+                              ? const LocalPhotoEditorScreen()
+                              : feature.title == 'Video Editor'
+                                  ? const LocalVideoEditorScreen()
+                                  : feature.title == 'Background Remover'
+                                      ? const BackgroundRemoverScreen()
+                                      : FeatureScreen(feature: feature),
                 ));
               },
               child: Padding(

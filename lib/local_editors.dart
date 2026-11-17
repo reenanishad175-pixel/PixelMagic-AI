@@ -276,8 +276,14 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
   }
 
   Future<void> _loadVideo(String path) async {
-    setState(() { _loading = true; _error = null; _status = null; });
-    await _controller?.dispose();
+    final previous = _controller;
+    setState(() {
+      _loading = true;
+      _error = null;
+      _status = null;
+      _controller = null;
+    });
+    await previous?.dispose();
     final controller = VideoPlayerController.file(File(path));
     try {
       await controller.initialize();
@@ -290,7 +296,11 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
       });
     } catch (_) {
       await controller.dispose();
-      if (mounted) setState(() { _loading = false; _error = 'This video could not be opened on this device.'; });
+      if (mounted) setState(() {
+        _controller = null;
+        _loading = false;
+        _error = 'This video could not be opened on this device.';
+      });
     }
   }
 

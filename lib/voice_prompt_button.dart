@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
@@ -21,44 +23,64 @@ class _VoicePromptButtonState extends State<VoicePromptButton> {
     if (!widget.enabled || _initializing) return;
     if (_speech.isListening) {
       await _speech.stop();
-      if (mounted) setState(() => _listening = false);
+      if (mounted) {
+        setState(() => _listening = false);
+      }
       return;
     }
+    final localeId = Localizations.localeOf(context).languageCode == 'hi' ? 'hi_IN' : 'en_IN';
     setState(() => _initializing = true);
     try {
       _available = await _speech.initialize(
         onStatus: (status) {
-          if (mounted) setState(() => _listening = status == 'listening');
+          if (mounted) {
+            setState(() => _listening = status == 'listening');
+          }
         },
         onError: (_) {
-          if (mounted) setState(() => _listening = false);
+          if (mounted) {
+            setState(() => _listening = false);
+          }
         },
       );
       if (!_available) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Voice input is unavailable. Enable a speech recognition service and microphone permission.')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Voice input is unavailable. Enable a speech recognition service and microphone permission.')),
+          );
+        }
         return;
       }
       _finalHandled = false;
-      final localeId = Localizations.localeOf(context).languageCode == 'hi' ? 'hi_IN' : 'en_IN';
       await _speech.listen(
-        localeId: localeId,
-        listenFor: const Duration(minutes: 1),
-        pauseFor: const Duration(seconds: 4),
+        options: stt.SpeechListenOptions(
+          localeId: localeId,
+          listenFor: const Duration(minutes: 1),
+          pauseFor: const Duration(seconds: 4),
+        ),
         onResult: (result) {
-          if (!result.finalResult || _finalHandled) return;
+          if (!result.finalResult || _finalHandled) {
+            return;
+          }
           final words = result.recognizedWords.trim();
-          if (words.isEmpty) return;
+          if (words.isEmpty) {
+            return;
+          }
           _finalHandled = true;
           widget.onRecognized(words);
           _speech.stop();
-          if (mounted) setState(() => _listening = false);
+          if (mounted) {
+            setState(() => _listening = false);
+          }
         },
       );
-      if (mounted) setState(() => _listening = _speech.isListening);
+      if (mounted) {
+        setState(() => _listening = _speech.isListening);
+      }
     } finally {
-      if (mounted) setState(() => _initializing = false);
+      if (mounted) {
+        setState(() => _initializing = false);
+      }
     }
   }
 

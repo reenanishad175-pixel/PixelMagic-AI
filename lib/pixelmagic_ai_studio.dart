@@ -218,11 +218,13 @@ class _PixelMagicAiStudioState extends State<PixelMagicAiStudio> {
         }
         gallerySaved = true;
       } catch (_) {}
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(gallerySaved
-            ? 'Downloaded to your Gallery and PixelMagic Downloads.'
-            : 'Saved in PixelMagic Downloads. Allow Photos/Videos access to also save to Gallery.'),
-      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(gallerySaved
+              ? 'Downloaded to your Gallery and PixelMagic Downloads.'
+              : 'Saved in PixelMagic Downloads. Allow Photos/Videos access to also save to Gallery.'),
+        ));
+      }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: $e')));
     } finally {

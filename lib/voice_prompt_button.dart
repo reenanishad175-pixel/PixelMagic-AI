@@ -53,7 +53,7 @@ class _VoicePromptButtonState extends State<VoicePromptButton> {
       }
       _finalHandled = false;
       await _speech.listen(
-        options: stt.SpeechListenOptions(
+        listenOptions: stt.SpeechListenOptions(
           localeId: localeId,
           listenFor: const Duration(minutes: 1),
           pauseFor: const Duration(seconds: 4),

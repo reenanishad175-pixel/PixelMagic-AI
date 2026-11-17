@@ -107,7 +107,7 @@ class LocalVideoEngine {
     final audioFilter = '[0:a:0]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,asetpts=PTS-STARTPTS[a0];'
         '[1:a:0]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,asetpts=PTS-STARTPTS[a1];';
     final filterWithAudio = '[0:v:0]$normalize[v0];[1:v:0]$normalize[v1];'
-        '$audioFilter[v0][a0][v1][a1]concat=n=2:v=1:a=1[outv][outa]';
+        '$audioFilter;[v0][a0][v1][a1]concat=n=2:v=1:a=1[outv][outa]';
     final commandWithAudio = '-y -i ${_quote(first)} -i ${_quote(second)} '
         '-filter_complex "$filterWithAudio" -map "[outv]" -map "[outa]" '
         '-c:v mpeg4 -q:v 3 -c:a aac -b:a 128k -ar 44100 -ac 2 -movflags +faststart '

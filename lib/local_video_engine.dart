@@ -101,18 +101,32 @@ class LocalVideoEngine {
     if (!await File(first).exists() || !await File(second).exists()) {
       throw Exception('One of the selected videos is no longer available. Please select both videos again.');
     }
-    final output = await _outputPath('PixelMagic_Merged');
-    // Decode and normalize both sources before concatenating. This avoids
-    // concat-demuxer failures when clips have different codecs, sizes,
-    // frame rates, time bases, or audio layouts.
     const normalize = 'scale=1280:720:force_original_aspect_ratio=decrease,'
         'pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30,setsar=1,format=yuv420p';
-    final filter = '[0:v:0]$normalize[v0];[1:v:0]$normalize[v1];'
-        '[v0][v1]concat=n=2:v=1:a=0[outv]';
-    final command = '-y -i ${_quote(first)} -i ${_quote(second)} '
-        '-filter_complex "$filter" -map "[outv]" -an '
-        '-c:v mpeg4 -q:v 3 -movflags +faststart ${_quote(output)}';
-    return _run(command, output, 'Merge videos');
+    final outputWithAudio = await _outputPath('PixelMagic_Merged');
+    final audioFilter = '[0:a:0]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo[a0];'
+        '[1:a:0]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo[a1];';
+    final filterWithAudio = '[0:v:0]$normalize[v0];[1:v:0]$normalize[v1];'
+        '$audioFilter[v0][a0][v1][a1]concat=n=2:v=1:a=1[outv][outa]';
+    final commandWithAudio = '-y -i ${_quote(first)} -i ${_quote(second)} '
+        '-filter_complex "$filterWithAudio" -map "[outv]" -map "[outa]" '
+        '-c:v mpeg4 -q:v 3 -c:a aac -b:a 128k -ar 44100 -ac 2 -movflags +faststart '
+        '${_quote(outputWithAudio)}';
+    try {
+      return await _run(commandWithAudio, outputWithAudio, 'Merge videos');
+    } catch (_) {
+      // Some phone clips have no audio stream. Retry with a video-only
+      // concat so different camera formats still merge instead of crashing.
+      final partial = File(outputWithAudio);
+      if (await partial.exists()) await partial.delete();
+      final output = await _outputPath('PixelMagic_Merged');
+      final videoFilter = '[0:v:0]$normalize[v0];[1:v:0]$normalize[v1];'
+          '[v0][v1]concat=n=2:v=1:a=0[outv]';
+      final command = '-y -i ${_quote(first)} -i ${_quote(second)} '
+          '-filter_complex "$videoFilter" -map "[outv]" -an '
+          '-c:v mpeg4 -q:v 3 -movflags +faststart ${_quote(output)}';
+      return _run(command, output, 'Merge videos');
+    }
   }
 
   static Future<String> setSpeed({

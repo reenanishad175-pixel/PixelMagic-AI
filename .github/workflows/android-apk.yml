@@ -141,7 +141,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="pixelmagic-build-${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" build/app/outputs/flutter-apk/app-debug.apk \\
-            --title "PixelMagic AI Android Build #${GITHUB_RUN_NUMBER}" \\
-            --notes "Android debug APK built and tested by GitHub Actions." \\
-            --latest=false
+          gh release create "$TAG" build/app/outputs/flutter-apk/app-debug.apk --title "PixelMagic AI Android Build #${GITHUB_RUN_NUMBER}" --notes "Android debug APK built and tested by GitHub Actions."

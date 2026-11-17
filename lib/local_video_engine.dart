@@ -98,17 +98,23 @@ class LocalVideoEngine {
     required String first,
     required String second,
   }) async {
-    final output = await _outputPath('PixelMagic_Merged');
-    final temp = await getTemporaryDirectory();
-    final list = File('${temp.path}/pixelmagic_concat_${DateTime.now().millisecondsSinceEpoch}.txt');
-    String listPath(String path) => path.replaceAll("'", "'\\''");
-    await list.writeAsString("file '${listPath(first)}'\nfile '${listPath(second)}'\n", flush: true);
-    try {
-      return await _run('-y -f concat -safe 0 -i ${_quote(list.path)} -c:v mpeg4 -q:v 3 -c:a aac -b:a 128k -movflags +faststart ${_quote(output)}', output, 'Merge videos');
-    } finally {
-      if (await list.exists()) await list.delete();
+    if (!await File(first).exists() || !await File(second).exists()) {
+      throw Exception('One of the selected videos is no longer available. Please select both videos again.');
     }
+    final output = await _outputPath('PixelMagic_Merged');
+    // Decode and normalize both sources before concatenating. This avoids
+    // concat-demuxer failures when clips have different codecs, sizes,
+    // frame rates, time bases, or audio layouts.
+    const normalize = 'scale=1280:720:force_original_aspect_ratio=decrease,'
+        'pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30,setsar=1,format=yuv420p';
+    final filter = '[0:v:0]$normalize[v0];[1:v:0]$normalize[v1];'
+        '[v0][v1]concat=n=2:v=1:a=0[outv]';
+    final command = '-y -i ${_quote(first)} -i ${_quote(second)} '
+        '-filter_complex "$filter" -map "[outv]" -an '
+        '-c:v mpeg4 -q:v 3 -movflags +faststart ${_quote(output)}';
+    return _run(command, output, 'Merge videos');
   }
+
   static Future<String> setSpeed({
     required String input,
     required double speed,

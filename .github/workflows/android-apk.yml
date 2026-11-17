@@ -50,11 +50,11 @@ jobs:
           p = Path("android/app/build.gradle.kts")
           source = p.read_text()
           if "proguard-rules.pro" not in source:
-              match = re.search(r'(?m)^(\\s*)(?:getByName\\("release"\\)|release)\\s*\\{', source)
+              match = re.search(r'(?m)^(\s*)(?:getByName\("release"\)|release)\s*\{', source)
               if not match:
                   raise SystemExit("Could not locate release build type to attach R8 rules")
               indent = match.group(1) + "    "
-              addition = '\\n' + indent + 'proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")'
+              addition = '\n' + indent + 'proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")'
               source = source[:match.end()] + addition + source[match.end():]
               p.write_text(source)
           PY

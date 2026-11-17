@@ -105,7 +105,7 @@ class LocalVideoEngine {
         'pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30,setsar=1,format=yuv420p,setpts=PTS-STARTPTS';
     final outputWithAudio = await _outputPath('PixelMagic_Merged');
     final audioFilter = '[0:a:0]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,asetpts=PTS-STARTPTS[a0];'
-        '[1:a:0]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,asetpts=PTS-STARTPTS[a1];';
+        '[1:a:0]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,asetpts=PTS-STARTPTS[a1]';
     final filterWithAudio = '[0:v:0]$normalize[v0];[1:v:0]$normalize[v1];'
         '$audioFilter;[v0][a0][v1][a1]concat=n=2:v=1:a=1[outv][outa]';
     final commandWithAudio = '-y -i ${_quote(first)} -i ${_quote(second)} '

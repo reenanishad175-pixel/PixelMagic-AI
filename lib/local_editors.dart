@@ -296,11 +296,13 @@ class _LocalVideoEditorScreenState extends State<LocalVideoEditorScreen> {
       });
     } catch (_) {
       await controller.dispose();
-      if (mounted) setState(() {
-        _controller = null;
-        _loading = false;
-        _error = 'This video could not be opened on this device.';
-      });
+      if (mounted) {
+        setState(() {
+          _controller = null;
+          _loading = false;
+          _error = 'This video could not be opened on this device.';
+        });
+      }
     }
   }
 

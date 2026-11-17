@@ -6,7 +6,7 @@ on:
     branches: [ main ]
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: pixelmagic-ai-android-build
@@ -42,8 +42,8 @@ jobs:
           import re
           p = Path("android/app/build.gradle.kts")
           s = p.read_text()
-          s, min_count = re.subn(r"(?m)^\s*minSdk\s*=.*$", "    minSdk = 24", s, count=1)
-          s, compile_count = re.subn(r"(?m)^\s*compileSdk\s*=.*$", "    compileSdk = 36", s, count=1)
+          s, min_count = re.subn(r"(?m)^\\s*minSdk\\s*=.*$", "    minSdk = 24", s, count=1)
+          s, compile_count = re.subn(r"(?m)^\\s*compileSdk\\s*=.*$", "    compileSdk = 36", s, count=1)
           if min_count != 1 or compile_count != 1:
               raise SystemExit("Could not set Android minSdk/compileSdk in generated Gradle file")
           p.write_text(s)
@@ -74,7 +74,7 @@ jobs:
           from pathlib import Path
           p = Path("android/app/src/main/AndroidManifest.xml")
           s = p.read_text()
-          permission = '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n'
+          permission = '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\\n'
           if "android.permission.RECORD_AUDIO" not in s:
               pos = s.find("<application")
               if pos < 0:
@@ -109,20 +109,20 @@ jobs:
           source = gradle.read_text()
           if gradle.name.endswith(".kts"):
               replacement = "    compileSdk = 36"
-              pattern = r"(?m)^\s*compileSdk(?:Version)?\s*(?:=\s*)?.*$"
-              insertion = r"(?m)^(\s*android\s*\{)"
+              pattern = r"(?m)^\\s*compileSdk(?:Version)?\\s*(?:=\\s*)?.*$"
+              insertion = r"(?m)^(\\s*android\\s*\\{)"
           else:
               replacement = "    compileSdkVersion 36"
-              pattern = r"(?m)^\s*compileSdk(?:Version)?\s+.*$"
-              insertion = r"(?m)^(\s*android\s*\{)"
+              pattern = r"(?m)^\\s*compileSdk(?:Version)?\\s+.*$"
+              insertion = r"(?m)^(\\s*android\\s*\\{)"
           updated, count = re.subn(pattern, replacement, source, count=1)
           if count == 0:
-              updated, count = re.subn(insertion, r"\1\n" + replacement, source, count=1)
+              updated, count = re.subn(insertion, r"\\1\\n" + replacement, source, count=1)
           if count != 1:
-              raise SystemExit(f"Could not patch compileSdk in {gradle}; contents:\n{source}")
+              raise SystemExit(f"Could not patch compileSdk in {gradle}; contents:\\n{source}")
           gradle.write_text(updated)
           print(f"Patched {gradle} to compileSdk 36")
-          print("\n".join(line for line in updated.splitlines() if "compileSdk" in line))
+          print("\\n".join(line for line in updated.splitlines() if "compileSdk" in line))
           PY
       - name: Run Flutter tests
         run: flutter test
@@ -130,9 +130,17 @@ jobs:
         run: flutter analyze
       - name: Build debug APK
         run: flutter build apk --debug --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_zkNayqCx5XzGQLT_NL5Iyg_aGwgu5Bb
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: PixelMagic-AI-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
+      - name: Publish direct APK download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: pixelmagic-build-${{ github.run_number }}
+          name: PixelMagic AI Build #${{ github.run_number }}
+          files: build/app/outputs/flutter-apk/app-debug.apk
+          fail_on_unmatched_files: true
+          generate_release_notes: false

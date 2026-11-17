@@ -46,18 +46,17 @@ jobs:
           EOF
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p = Path("android/app/build.gradle.kts")
-          s = p.read_text()
-          if "proguard-rules.pro" not in s:
-              marker = "            isMinifyEnabled = true"
-              if marker in s:
-                  s = s.replace(marker, marker + '\\n            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")', 1)
-              else:
-                  marker = "        getByName(\\"release\\") {"
-                  if marker not in s:
-                      raise SystemExit("Could not locate release build type to attach R8 rules")
-                  s = s.replace(marker, marker + '\\n            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")', 1)
-              p.write_text(s)
+          source = p.read_text()
+          if "proguard-rules.pro" not in source:
+              match = re.search(r'(?m)^(\\s*)(?:getByName\\("release"\\)|release)\\s*\\{', source)
+              if not match:
+                  raise SystemExit("Could not locate release build type to attach R8 rules")
+              indent = match.group(1) + "    "
+              addition = '\\n' + indent + 'proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")'
+              source = source[:match.end()] + addition + source[match.end():]
+              p.write_text(source)
           PY
       - name: Set minimum Android API for local media engines
         run: |

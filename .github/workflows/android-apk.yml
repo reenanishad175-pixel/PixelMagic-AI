@@ -128,19 +128,21 @@ jobs:
         run: flutter test
       - name: Analyze Dart source
         run: flutter analyze
-      - name: Build debug APK
-        run: flutter build apk --debug --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_zkNayqCx5XzGQLT_NL5Iyg_aGwgu5Bb
+      - name: Build optimized split release APKs
+        run: flutter build apk --release --split-per-abi --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_zkNayqCx5XzGQLT_NL5Iyg_aGwgu5Bb
+      - name: Show APK sizes
+        run: ls -lh build/app/outputs/flutter-apk/*-release.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PixelMagic-AI-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: PixelMagic-AI-release-apks
+          path: build/app/outputs/flutter-apk/*-release.apk
           if-no-files-found: error
       - name: Publish direct APK download
         uses: softprops/action-gh-release@v2
         with:
           tag_name: pixelmagic-build-${{ github.run_number }}
           name: PixelMagic AI Build #${{ github.run_number }}
-          files: build/app/outputs/flutter-apk/app-debug.apk
+          files: build/app/outputs/flutter-apk/*-release.apk
           fail_on_unmatched_files: true
           generate_release_notes: false

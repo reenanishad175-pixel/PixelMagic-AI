@@ -69,7 +69,7 @@ Deno.serve(async (req: Request) => {
               const listData = await listResponse.json();
               const available = (Array.isArray(listData?.models) ? listData.models : [])
                 .filter((model: any) => {
-                  const name = String(model?.name ?? "").replace(/^models\\//, "");
+                  const name = String(model?.name ?? "").replace("models/", "");
                   const methods = Array.isArray(model?.supportedGenerationMethods) ? model.supportedGenerationMethods : [];
                   return name && name !== primaryModel && name.toLowerCase().includes("flash") &&
                     !/(image|audio|live|embedding|preview|experimental)/i.test(name) &&
@@ -83,7 +83,7 @@ Deno.serve(async (req: Request) => {
                   return ar - br || an.localeCompare(bn);
                 });
               for (const model of available.slice(0, 2)) {
-                const fallbackName = String(model.name).replace(/^models\\//, "");
+                const fallbackName = String(model.name).replace("models/", "");
                 try {
                   const fallbackAttempt = await callModel(fallbackName, 15000);
                   attempt = fallbackAttempt;

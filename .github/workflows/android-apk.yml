@@ -35,6 +35,30 @@ jobs:
           cache: true
       - name: Generate Android platform files
         run: flutter create --platforms=android --project-name pixelmagic_ai .
+      - name: Configure R8 rules for optional ML Kit scripts
+        run: |
+          mkdir -p android/app
+          cat > android/app/proguard-rules.pro <<'EOF'
+          -dontwarn com.google.mlkit.vision.text.chinese.**
+          -dontwarn com.google.mlkit.vision.text.devanagari.**
+          -dontwarn com.google.mlkit.vision.text.japanese.**
+          -dontwarn com.google.mlkit.vision.text.korean.**
+          EOF
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/build.gradle.kts")
+          s = p.read_text()
+          if "proguard-rules.pro" not in s:
+              marker = "            isMinifyEnabled = true"
+              if marker in s:
+                  s = s.replace(marker, marker + '\\n            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")', 1)
+              else:
+                  marker = "        getByName(\\"release\\") {"
+                  if marker not in s:
+                      raise SystemExit("Could not locate release build type to attach R8 rules")
+                  s = s.replace(marker, marker + '\\n            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")', 1)
+              p.write_text(s)
+          PY
       - name: Set minimum Android API for local media engines
         run: |
           python3 - <<'PY'
